@@ -58,6 +58,7 @@ const func = new OnDeviceEmbeddingFunction();
 const notesTableSchema = LanceSchema({
   title: func.sourceField(new Utf8()),
   content: func.sourceField(new Utf8()),
+  path: func.sourceField(new Utf8()),
   creation_date: func.sourceField(new Utf8()),
   modification_date: func.sourceField(new Utf8()),
   vector: func.vectorField(),
@@ -65,10 +66,16 @@ const notesTableSchema = LanceSchema({
 
 const QueryNotesSchema = z.object({
   query: z.string(),
+  path: z.string().optional(),
+  limit: z.number().optional(),
 });
 
 const GetNoteSchema = z.object({
   title: z.string(),
+});
+
+const PathSchema = z.object({
+  path: z.string(),
 });
 
 const server = new Server(
@@ -117,12 +124,35 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: "search-notes",
-        description: "Search for notes by title or content",
+        name: "list-folders",
+        description: "Lists all folders in Apple Notes with note counts",
+        inputSchema: {
+          type: "object",
+          properties: {},
+          required: [],
+        },
+      },
+      {
+        name: "get-notes-by-path",
+        description:
+          "Get all notes in a specific Apple Notes folder by its full path (returns titles and metadata, no content). Use list-folders to get available paths.",
         inputSchema: {
           type: "object",
           properties: {
-            query: z.string(),
+            path: { type: "string", description: "Full folder path (e.g. iCloud/Work/Projects)" },
+          },
+          required: ["path"],
+        },
+      },
+      {
+        name: "search-notes",
+        description: "Search for notes by title or content. Optionally filter by folder path.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            query: { type: "string" },
+            path: { type: "string", description: "Optional: filter results to a specific folder path (e.g. iCloud/Work)" },
+            limit: { type: "number", description: "Max results to return (default: 50)" },
           },
           required: ["query"],
         },
@@ -144,21 +174,83 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   };
 });
 
+const jxaGetFolderPath = `
+  function getFolderPath(item) {
+    var parts = [];
+    var current = item;
+    while (true) {
+      try {
+        var c = current.container();
+        parts.unshift(c.name());
+        current = c;
+      } catch(e) { break; }
+    }
+    return parts.join('/');
+  }
+`;
+
 const getNotes = async () => {
-  const notes = await runJxa(`
+  const result = await runJxa(`
+    ${jxaGetFolderPath}
     const app = Application('Notes');
-app.includeStandardAdditions = true;
-const notes = Array.from(app.notes());
-const titles = notes.map(note => note.properties().name);
-return titles;
+    app.includeStandardAdditions = true;
+    const notes = Array.from(app.notes());
+    return JSON.stringify(notes.map(note => ({
+      title: note.properties().name,
+      path: getFolderPath(note)
+    })));
   `);
 
-  return notes as string[];
+  return JSON.parse(result as string) as { title: string; path: string }[];
+};
+
+const getFolders = async () => {
+  const result = await runJxa(`
+    ${jxaGetFolderPath}
+    const app = Application('Notes');
+    app.includeStandardAdditions = true;
+    const folders = Array.from(app.folders());
+    return JSON.stringify(folders.map(f => ({
+      name: f.name(),
+      path: getFolderPath(f) + '/' + f.name(),
+      noteCount: f.notes().length
+    })));
+  `);
+
+  return JSON.parse(result as string) as { name: string; path: string; noteCount: number }[];
+};
+
+const getNotesByPath = async (folderPath: string) => {
+  const result = await runJxa(
+    `${jxaGetFolderPath}
+    const app = Application('Notes');
+    app.includeStandardAdditions = true;
+    const targetPath = args[0];
+    const allFolders = Array.from(app.folders());
+    const folder = allFolders.find(f => getFolderPath(f) + '/' + f.name() === targetPath);
+    if (!folder) return JSON.stringify([]);
+    const notes = Array.from(folder.notes());
+    return JSON.stringify(notes.map(note => ({
+      title: note.name(),
+      path: targetPath,
+      creation_date: note.creationDate().toLocaleString(),
+      modification_date: note.modificationDate().toLocaleString()
+    })));`,
+    [folderPath]
+  );
+
+  return JSON.parse(result as string) as {
+    title: string;
+    path: string;
+    creation_date: string;
+    modification_date: string;
+  }[];
 };
 
 const getNoteDetailsByTitle = async (title: string) => {
   const note = await runJxa(
-    `const app = Application('Notes');
+    `${jxaGetFolderPath}
+    const app = Application('Notes');
     const title = args[0];
 
     try {
@@ -167,6 +259,7 @@ const getNoteDetailsByTitle = async (title: string) => {
         const noteInfo = {
             title: note.name(),
             content: note.body(),
+            path: getFolderPath(note),
             creation_date: note.creationDate().toLocaleString(),
             modification_date: note.modificationDate().toLocaleString()
         };
@@ -181,6 +274,7 @@ const getNoteDetailsByTitle = async (title: string) => {
   return JSON.parse(note as string) as {
     title: string;
     content: string;
+    path: string;
     creation_date: string;
     modification_date: string;
   };
@@ -193,9 +287,9 @@ export const indexNotes = async (notesTable: any) => {
   const notesDetails = await Promise.all(
     allNotes.map((note) => {
       try {
-        return getNoteDetailsByTitle(note);
+        return getNoteDetailsByTitle(note.title);
       } catch (error) {
-        report += `Error getting note details for ${note}: ${error.message}\n`;
+        report += `Error getting note details for ${note.title}: ${error.message}\n`;
         return {} as any;
       }
     })
@@ -216,7 +310,8 @@ export const indexNotes = async (notesTable: any) => {
     .map((note, index) => ({
       id: index.toString(),
       title: note.title,
-      content: note.content, // turndown(note.content || ""),
+      content: note.content,
+      path: note.path || "Unknown",
       creation_date: note.creation_date,
       modification_date: note.modification_date,
     }));
@@ -296,14 +391,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request, c) => {
       } catch (error) {
         return createTextResponse(error.message);
       }
+    } else if (name === "list-folders") {
+      const folders = await getFolders();
+      return createTextResponse(JSON.stringify(folders));
+    } else if (name === "get-notes-by-path") {
+      const { path } = PathSchema.parse(args);
+      const notes = await getNotesByPath(path);
+      return createTextResponse(JSON.stringify(notes));
     } else if (name === "index-notes") {
       const { time, chunks, report, allNotes } = await indexNotes(notesTable);
       return createTextResponse(
         `Indexed ${chunks} notes chunks in ${time}ms. You can now search for them using the "search-notes" tool.`
       );
     } else if (name === "search-notes") {
-      const { query } = QueryNotesSchema.parse(args);
-      const combinedResults = await searchAndCombineResults(notesTable, query);
+      const { query, path, limit } = QueryNotesSchema.parse(args);
+      const combinedResults = await searchAndCombineResults(notesTable, query, { path, limit });
       return createTextResponse(JSON.stringify(combinedResults));
     } else {
       throw new Error(`Unknown tool: ${name}`);
@@ -336,45 +438,43 @@ const createTextResponse = (text: string) => ({
 export const searchAndCombineResults = async (
   notesTable: lancedb.Table,
   query: string,
-  limit = 20
+  options: { limit?: number; path?: string } = {}
 ) => {
+  const { limit = 50, path } = options;
+  const fetchLimit = path ? limit * 3 : limit;
+
   const [vectorResults, ftsSearchResults] = await Promise.all([
-    (async () => {
-      const results = await notesTable
-        .search(query, "vector")
-        .limit(limit)
-        .toArray();
-      return results;
-    })(),
-    (async () => {
-      const results = await notesTable
-        .search(query, "fts", "content")
-        .limit(limit)
-        .toArray();
-      return results;
-    })(),
+    notesTable.search(query, "vector").limit(fetchLimit).toArray(),
+    notesTable.search(query, "fts", "content").limit(fetchLimit).toArray(),
   ]);
 
-  const k = 60;
-  const scores = new Map<string, number>();
+  const filterByPath = (results: any[]) =>
+    path ? results.filter((r) => r.path === path) : results;
 
-  const processResults = (results: any[], startRank: number) => {
+  const k = 60;
+  const scores = new Map<string, { score: number; path: string }>();
+
+  const processResults = (results: any[]) => {
     results.forEach((result, idx) => {
       const key = `${result.title}::${result.content}`;
-      const score = 1 / (k + startRank + idx);
-      scores.set(key, (scores.get(key) || 0) + score);
+      const score = 1 / (k + idx);
+      const existing = scores.get(key);
+      scores.set(key, {
+        score: (existing?.score || 0) + score,
+        path: result.path,
+      });
     });
   };
 
-  processResults(vectorResults, 0);
-  processResults(ftsSearchResults, 0);
+  processResults(filterByPath(vectorResults));
+  processResults(filterByPath(ftsSearchResults));
 
   const results = Array.from(scores.entries())
-    .sort(([, a], [, b]) => b - a)
+    .sort(([, a], [, b]) => b.score - a.score)
     .slice(0, limit)
-    .map(([key]) => {
+    .map(([key, { path }]) => {
       const [title, content] = key.split("::");
-      return { title, content };
+      return { title, content, path };
     });
 
   return results;
