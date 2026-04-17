@@ -1,13 +1,18 @@
 import { runJxa } from "run-jxa";
 
+// Titles with special characters that previously caused JXA injection errors
 const problemTitles = [
-  '"feature_limitation_rule": {',
-  '{"_id": "6d5edc49-76f4-4247-80a4-ef714286508f"',
-  'First issue is that on `User selects a body part (e.g. mouth)` the…',
+  '"some_json_key": {',
+  '{"_id": "abc-123-def-456"',
+  'Issue with `backticks` in title…',
 ];
 
+let passed = 0;
+let failed = 0;
+
 for (const title of problemTitles) {
-  console.log(`Testing: ${title.substring(0, 50)}...`);
+  const truncated = title.substring(0, 30) + (title.length > 30 ? "..." : "");
+  process.stdout.write(`Testing special chars (${truncated})... `);
   try {
     const note = await runJxa(
       `const app = Application('Notes');
@@ -26,11 +31,14 @@ for (const title of problemTitles) {
       }`,
       [title]
     );
-    const parsed = JSON.parse(note);
-    console.log(`  OK: ${parsed.title ? "found" : "not found (empty)"}\n`);
+    JSON.parse(note); // should not throw
+    passed++;
+    console.log("PASS (no crash)");
   } catch (e) {
-    console.error(`  FAIL: ${e.message}\n`);
+    failed++;
+    console.log(`FAIL: ${e.message}`);
   }
 }
 
-console.log("All problem titles handled without crashes.");
+console.log(`\nResults: ${passed} passed, ${failed} failed`);
+if (failed > 0) process.exit(1);

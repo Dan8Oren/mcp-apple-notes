@@ -11,7 +11,6 @@ try {
     return titles;
   `);
   console.log(`  OK - Found ${notes.length} notes`);
-  console.log(`  First 3:`, notes.slice(0, 3));
 } catch (e) {
   console.error(`  FAIL:`, e.message);
 }
@@ -26,12 +25,11 @@ try {
     return notes.map(note => note.properties().name);
   `);
 
-  const title = notes[0].replace(/[\\'"]/g, "\\$&");
-  console.log(`  Trying title: "${title}"`);
+  const title = notes[0];
 
   const note = await runJxa(
     `const app = Application('Notes');
-    const title = "${title}";
+    const title = args[0];
 
     try {
         const note = app.notes.whose({name: title})[0];
@@ -46,9 +44,11 @@ try {
         return JSON.stringify(noteInfo);
     } catch (error) {
         return "{}";
-    }`
+    }`,
+    [title]
   );
-  console.log(`  OK:`, JSON.parse(note).title);
+  const parsed = JSON.parse(note);
+  console.log(`  OK: note retrieved (${parsed.content ? "has content" : "empty"})`);
 } catch (e) {
   console.error(`  FAIL:`, e.message);
 }
