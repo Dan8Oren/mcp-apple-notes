@@ -17,7 +17,6 @@
     ".": "./index.ts"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^1.0.8",
     "@huggingface/transformers": "^3.1.2",
     "@lancedb/lancedb": "^0.14.0",
     "@langchain/textsplitters": "^0.1.0",
