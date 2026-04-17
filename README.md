@@ -1,5 +1,7 @@
 # MCP Apple Notes
 
+![MCP Apple Notes](./images/logo.png)
+
 > **Fork of [RafalWilinski/mcp-apple-notes](https://github.com/RafalWilinski/mcp-apple-notes)** — actively maintained with bug fixes and additional features.
 
 A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that enables semantic search and RAG (Retrieval Augmented Generation) over your Apple Notes. Works with any MCP-compatible client — Claude Desktop, Cursor, Windsurf, Cline, and others.
