@@ -11,7 +11,7 @@
     "build": "bun build index.ts --outdir dist --target node",
     "start": "bun index.ts",
     "purge-db": "rm -rf ~/.mcp-apple-notes",
-    "test": "npx tsx index.test.ts"
+    "test": "npx tsx test/test-search.mjs 2>&1 | grep -q '0 failed' || exit 1; for f in test/test-*.mjs; do [ \"$f\" = test/test-search.mjs ] && continue; node --experimental-vm-modules \"$f\" || exit 1; done"
   },
   "exports": {
     ".": "./index.ts"
