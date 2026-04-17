@@ -3,11 +3,7 @@ import path from "node:path";
 import os from "node:os";
 import { LanceSchema } from "@lancedb/lancedb/embedding";
 import { Utf8 } from "apache-arrow";
-import {
-  createNotesTable,
-  OnDeviceEmbeddingFunction,
-  searchAndCombineResults,
-} from "../index.ts";
+import { createNotesTable, OnDeviceEmbeddingFunction, searchAndCombineResults } from "../index.ts";
 
 let passed = 0;
 let failed = 0;
@@ -77,10 +73,7 @@ try {
   const results = await searchAndCombineResults(notesTable, "project roadmap", {
     path: "iCloud/Personal",
   });
-  assert(
-    !results.some((r) => r.path === "iCloud/Work"),
-    "Filters out non-matching paths"
-  );
+  assert(!results.some((r) => r.path === "iCloud/Work"), "Filters out non-matching paths");
 } catch (e) {
   failed++;
   console.error(`  FAIL: ${e.message}`);
@@ -101,9 +94,7 @@ try {
 
 // Cleanup: drop test table
 try {
-  const db = await lancedb.connect(
-    path.join(os.homedir(), ".mcp-apple-notes", "data")
-  );
+  const db = await lancedb.connect(path.join(os.homedir(), ".mcp-apple-notes", "data"));
   await db.dropTable(TEST_TABLE);
 } catch (_) {}
 
