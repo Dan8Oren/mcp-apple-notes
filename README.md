@@ -2,6 +2,8 @@
 
 ![MCP Apple Notes](./images/logo.png)
 
+> **Fork of [RafalWilinski/mcp-apple-notes](https://github.com/RafalWilinski/mcp-apple-notes)** — actively maintained with bug fixes and additional features.
+
 A [Model Context Protocol (MCP)](https://www.anthropic.com/news/model-context-protocol) server that enables semantic search and RAG (Retrieval Augmented Generation) over your Apple Notes. This allows AI assistants like Claude to search and reference your Apple Notes during conversations.
 
 ![MCP Apple Notes](./images/demo.png)
@@ -10,6 +12,7 @@ A [Model Context Protocol (MCP)](https://www.anthropic.com/news/model-context-pr
 
 - 🔍 Semantic search over Apple Notes using [`all-MiniLM-L6-v2`](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) on-device embeddings model
 - 📝 Full-text search capabilities
+- 📂 Folder support — list folders, browse by folder, filter search by folder
 - 📊 Vector storage using [LanceDB](https://lancedb.github.io/lancedb/)
 - 🤖 MCP-compatible server for AI assistant integration
 - 🍎 Native Apple Notes integration via JXA
@@ -17,7 +20,7 @@ A [Model Context Protocol (MCP)](https://www.anthropic.com/news/model-context-pr
 
 ## Prerequisites
 
-- [Bun](https://bun.sh/docs/installation)
+- [Bun](https://bun.sh/docs/installation) or Node.js with npm
 - [Claude Desktop](https://claude.ai/download)
 
 ## Installation
@@ -25,7 +28,7 @@ A [Model Context Protocol (MCP)](https://www.anthropic.com/news/model-context-pr
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/RafalWilinski/mcp-apple-notes
+git clone https://github.com/Dan8Oren/mcp-apple-notes
 cd mcp-apple-notes
 ```
 
@@ -33,6 +36,8 @@ cd mcp-apple-notes
 
 ```bash
 bun install
+# or
+npm install
 ```
 
 ## Usage
@@ -72,10 +77,15 @@ tail -n 50 -f ~/Library/Logs/Claude/mcp-server-local-machine.log
 tail -n 50 -f ~/Library/Logs/Claude/mcp.log
 ```
 
-## Todos
+## Available Tools
 
-- [ ] Apple notes are returned in the HTML format. We should turn them to Markdown and embed that
-- [ ] Chunk source content using recursive text splitter or markdown text splitter
-- [ ] Add an option to use custom embeddings model
-- [ ] More control over DB - purge, custom queries, etc.
-- [x] Storing notes in Notes via Claude
+| Tool | Description |
+|------|-------------|
+| `list-notes` | List titles of all indexed notes |
+| `list-folders` | List all Apple Notes folders with full paths and note counts |
+| `get-note` | Get full content and details of a note by title |
+| `get-notes-by-path` | Get all notes in a folder by its full path (e.g. `iCloud/Work/Projects`) |
+| `search-notes` | Semantic + full-text search with optional path filter and limit |
+| `index-notes` | Index all notes for search |
+| `create-note` | Create a new Apple Note |
+
