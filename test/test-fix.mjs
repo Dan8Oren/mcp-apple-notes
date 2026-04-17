@@ -4,7 +4,7 @@ import { runJxa } from "run-jxa";
 const problemTitles = [
   '"some_json_key": {',
   '{"_id": "abc-123-def-456"',
-  'Issue with `backticks` in title…',
+  "Issue with `backticks` in title…",
 ];
 
 let passed = 0;

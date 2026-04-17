@@ -1,31 +1,19 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from "@modelcontextprotocol/sdk/types.js";
+import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import * as lancedb from "@lancedb/lancedb";
 import { runJxa } from "run-jxa";
 import path from "node:path";
 import os from "node:os";
 import TurndownService from "turndown";
-import {
-  EmbeddingFunction,
-  LanceSchema,
-  register,
-} from "@lancedb/lancedb/embedding";
+import { EmbeddingFunction, LanceSchema, register } from "@lancedb/lancedb/embedding";
 import { type Float, Float32, Utf8 } from "apache-arrow";
 import { pipeline } from "@huggingface/transformers";
 
 const { turndown } = new TurndownService();
-const db = await lancedb.connect(
-  path.join(os.homedir(), ".mcp-apple-notes", "data")
-);
-const extractor = await pipeline(
-  "feature-extraction",
-  "Xenova/all-MiniLM-L6-v2"
-);
+const db = await lancedb.connect(path.join(os.homedir(), ".mcp-apple-notes", "data"));
+const extractor = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2");
 
 @register("openai")
 export class OnDeviceEmbeddingFunction extends EmbeddingFunction<string> {
@@ -151,7 +139,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           type: "object",
           properties: {
             query: { type: "string" },
-            path: { type: "string", description: "Optional: filter results to a specific folder path (e.g. iCloud/Work)" },
+            path: {
+              type: "string",
+              description: "Optional: filter results to a specific folder path (e.g. iCloud/Work)",
+            },
             limit: { type: "number", description: "Max results to return (default: 50)" },
           },
           required: ["query"],
@@ -289,7 +280,7 @@ export const indexNotes = async (notesTable: any) => {
       try {
         return getNoteDetailsByTitle(note.title);
       } catch (error) {
-        report += `Error getting note details for ${note.title}: ${error.message}\n`;
+        report += `Error getting note details for ${note.title}: ${(error as Error).message}\n`;
         return {} as any;
       }
     })
@@ -328,14 +319,10 @@ export const indexNotes = async (notesTable: any) => {
 
 export const createNotesTable = async (overrideName?: string) => {
   const start = performance.now();
-  const notesTable = await db.createEmptyTable(
-    overrideName || "notes",
-    notesTableSchema,
-    {
-      mode: "create",
-      existOk: true,
-    }
-  );
+  const notesTable = await db.createEmptyTable(overrideName || "notes", notesTableSchema, {
+    mode: "create",
+    existOk: true,
+  });
 
   const indices = await notesTable.listIndices();
   if (!indices.find((index) => index.name === "content_idx")) {
@@ -389,7 +376,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request, c) => {
 
         return createTextResponse(`${note}`);
       } catch (error) {
-        return createTextResponse(error.message);
+        return createTextResponse((error as Error).message);
       }
     } else if (name === "list-folders") {
       const folders = await getFolders();

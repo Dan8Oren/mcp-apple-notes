@@ -1,12 +1,10 @@
 # MCP Apple Notes
 
-![MCP Apple Notes](./images/logo.png)
-
 > **Fork of [RafalWilinski/mcp-apple-notes](https://github.com/RafalWilinski/mcp-apple-notes)** — actively maintained with bug fixes and additional features.
 
 A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that enables semantic search and RAG (Retrieval Augmented Generation) over your Apple Notes. Works with any MCP-compatible client — Claude Desktop, Cursor, Windsurf, Cline, and others.
 
-![MCP Apple Notes](./images/demo.png)
+![MCP Apple Notes Demo](./images/demo.png)
 
 ## Features
 
@@ -43,15 +41,9 @@ npm install
 
 ## Usage
 
-Add the server to your MCP client configuration. The config format below works with Claude Desktop, but other clients follow a similar pattern — refer to your client's MCP documentation.
+Add the following MCP server configuration to your client. Replace `/path/to/` with the actual path where you cloned the repo.
 
-### Claude Desktop
-
-1. Open Settings -> Developer -> Edit Config
-
-![Claude Desktop Settings](./images/desktop_settings.png)
-
-2. Add the following to `claude_desktop_config.json`:
+Using npm/npx:
 
 ```json
 {
@@ -64,7 +56,7 @@ Add the server to your MCP client configuration. The config format below works w
 }
 ```
 
-Or if using Bun:
+Using Bun:
 
 ```json
 {
@@ -77,27 +69,31 @@ Or if using Bun:
 }
 ```
 
-3. Restart your client. Start by indexing your notes — ask your AI assistant to "index my notes".
+After adding the config, restart your client and ask your AI assistant to "index my notes" to get started.
 
-## Troubleshooting
+<details>
+<summary>Claude Desktop setup</summary>
 
-For Claude Desktop, check logs at:
+1. Open Settings -> Developer -> Edit Config
+2. Paste one of the JSON configs above into `claude_desktop_config.json`
+3. Restart Claude Desktop
+
+Logs can be found at:
 
 ```bash
 tail -n 50 -f ~/Library/Logs/Claude/mcp-server-apple-notes.log
-# or
-tail -n 50 -f ~/Library/Logs/Claude/mcp.log
 ```
+
+</details>
 
 ## Available Tools
 
-| Tool | Description |
-|------|-------------|
-| `list-notes` | List titles of all indexed notes |
-| `list-folders` | List all Apple Notes folders with full paths and note counts |
-| `get-note` | Get full content and details of a note by title |
+| Tool                | Description                                                              |
+| ------------------- | ------------------------------------------------------------------------ |
+| `list-notes`        | List titles of all indexed notes                                         |
+| `list-folders`      | List all Apple Notes folders with full paths and note counts             |
+| `get-note`          | Get full content and details of a note by title                          |
 | `get-notes-by-path` | Get all notes in a folder by its full path (e.g. `iCloud/Work/Projects`) |
-| `search-notes` | Semantic + full-text search with optional path filter and limit |
-| `index-notes` | Index all notes for search |
-| `create-note` | Create a new Apple Note |
-
+| `search-notes`      | Semantic + full-text search with optional path filter and limit          |
+| `index-notes`       | Index all notes for search                                               |
+| `create-note`       | Create a new Apple Note                                                  |

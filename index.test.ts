@@ -14,9 +14,7 @@ import {
 } from "./index";
 
 describe("Apple Notes Indexing", async () => {
-  const db = await lancedb.connect(
-    path.join(os.homedir(), ".mcp-apple-notes", "data")
-  );
+  const db = await lancedb.connect(path.join(os.homedir(), ".mcp-apple-notes", "data"));
   const func = new OnDeviceEmbeddingFunction();
 
   const notesSchema = LanceSchema({

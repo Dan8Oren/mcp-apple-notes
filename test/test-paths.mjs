@@ -19,8 +19,13 @@ let passed = 0;
 let failed = 0;
 
 function assert(condition, msg) {
-  if (condition) { passed++; console.log(`  PASS: ${msg}`); }
-  else { failed++; console.error(`  FAIL: ${msg}`); }
+  if (condition) {
+    passed++;
+    console.log(`  PASS: ${msg}`);
+  } else {
+    failed++;
+    console.error(`  FAIL: ${msg}`);
+  }
 }
 
 // Test 1: list-folders returns full paths
@@ -39,11 +44,20 @@ try {
   `);
   const folders = JSON.parse(result);
   assert(folders.length > 0, `Found ${folders.length} folders`);
-  assert(folders.every(f => f.path.includes("/")), "All folders have path with /");
-  assert(folders.every(f => f.path.endsWith(f.name)), "All paths end with folder name");
-  assert(folders.every(f => typeof f.noteCount === "number"), "All have noteCount");
+  assert(
+    folders.every((f) => f.path.includes("/")),
+    "All folders have path with /"
+  );
+  assert(
+    folders.every((f) => f.path.endsWith(f.name)),
+    "All paths end with folder name"
+  );
+  assert(
+    folders.every((f) => typeof f.noteCount === "number"),
+    "All have noteCount"
+  );
   // Check nested folder has multi-level path
-  const nested = folders.find(f => f.path.split("/").length > 2);
+  const nested = folders.find((f) => f.path.split("/").length > 2);
   if (nested) {
     assert(true, `Found nested folder with ${nested.path.split("/").length} levels`);
   }
@@ -68,8 +82,14 @@ try {
   `);
   const notes = JSON.parse(result);
   assert(notes.length > 0, `Got ${notes.length} notes`);
-  assert(notes.every(n => n.path.includes("/")), "All notes have path with /");
-  assert(notes.every(n => typeof n.title === "string" && n.title.length > 0), "All have title");
+  assert(
+    notes.every((n) => n.path.includes("/")),
+    "All notes have path with /"
+  );
+  assert(
+    notes.every((n) => typeof n.title === "string" && n.title.length > 0),
+    "All have title"
+  );
   console.log(`    (${notes.length} notes sampled)`);
 } catch (e) {
   failed++;
@@ -92,7 +112,7 @@ try {
     })));
   `);
   const folders = JSON.parse(foldersResult);
-  const testFolder = folders.find(f => f.noteCount > 0);
+  const testFolder = folders.find((f) => f.noteCount > 0);
   console.log(`  Using a folder with ${testFolder.noteCount} notes`);
 
   const result = await runJxa(
@@ -113,8 +133,14 @@ try {
     [testFolder.path]
   );
   const notes = JSON.parse(result);
-  assert(notes.length === testFolder.noteCount, `Got ${notes.length} notes (expected ${testFolder.noteCount})`);
-  assert(notes.every(n => n.path === testFolder.path), "All notes have correct path");
+  assert(
+    notes.length === testFolder.noteCount,
+    `Got ${notes.length} notes (expected ${testFolder.noteCount})`
+  );
+  assert(
+    notes.every((n) => n.path === testFolder.path),
+    "All notes have correct path"
+  );
   console.log(`    (${notes.length} notes in folder)`);
 } catch (e) {
   failed++;
