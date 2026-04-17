@@ -97,3 +97,6 @@ tail -n 50 -f ~/Library/Logs/Claude/mcp-server-apple-notes.log
 | `search-notes`      | Semantic + full-text search with optional path filter and limit          |
 | `index-notes`       | Index all notes for search                                               |
 | `create-note`       | Create a new Apple Note                                                  |
+| `edit-note`         | Edit title and/or content of an existing note                            |
+| `move-note`         | Move a note to a different folder by path                                |
+| `delete-note`       | Delete a note (moves to Recently Deleted)                                |

@@ -66,6 +66,21 @@ const PathSchema = z.object({
   path: z.string(),
 });
 
+const EditNoteSchema = z.object({
+  title: z.string(),
+  newTitle: z.string().optional(),
+  newContent: z.string().optional(),
+});
+
+const MoveNoteSchema = z.object({
+  title: z.string(),
+  targetPath: z.string(),
+});
+
+const DeleteNoteSchema = z.object({
+  title: z.string(),
+});
+
 const server = new Server(
   {
     name: "my-apple-notes-mcp",
@@ -159,6 +174,49 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             content: { type: "string" },
           },
           required: ["title", "content"],
+        },
+      },
+      {
+        name: "edit-note",
+        description: "Edit an existing Apple Note's title and/or content by its current title",
+        inputSchema: {
+          type: "object",
+          properties: {
+            title: { type: "string", description: "Current title of the note to edit" },
+            newTitle: { type: "string", description: "New title (optional)" },
+            newContent: {
+              type: "string",
+              description: "New content in HTML format (optional, replaces entire content)",
+            },
+          },
+          required: ["title"],
+        },
+      },
+      {
+        name: "move-note",
+        description:
+          "Move a note to a different folder by specifying the target folder path. Use list-folders to get available paths.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            title: { type: "string", description: "Title of the note to move" },
+            targetPath: {
+              type: "string",
+              description: "Full folder path to move the note to (e.g. iCloud/Work/Projects)",
+            },
+          },
+          required: ["title", "targetPath"],
+        },
+      },
+      {
+        name: "delete-note",
+        description: "Delete an Apple Note by title. The note will be moved to Recently Deleted.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            title: { type: "string", description: "Title of the note to delete" },
+          },
+          required: ["title"],
         },
       },
     ],
@@ -335,24 +393,59 @@ export const createNotesTable = async (overrideName?: string) => {
 };
 
 const createNote = async (title: string, content: string) => {
-  // Escape special characters and convert newlines to \n
-  const escapedTitle = title.replace(/[\\'"]/g, "\\$&");
-  const escapedContent = content
-    .replace(/[\\'"]/g, "\\$&")
-    .replace(/\n/g, "\\n")
-    .replace(/\r/g, "");
-
-  await runJxa(`
-    const app = Application('Notes');
-    const note = app.make({new: 'note', withProperties: {
-      name: "${escapedTitle}",
-      body: "${escapedContent}"
+  await runJxa(
+    `const app = Application('Notes');
+    app.make({new: 'note', withProperties: {
+      name: args[0],
+      body: args[1]
     }});
-    
-    return true
-  `);
+    return true;`,
+    [title, content]
+  );
+};
 
-  return true;
+const editNote = async (title: string, newTitle?: string, newContent?: string) => {
+  await runJxa(
+    `const app = Application('Notes');
+    const title = args[0];
+    const newTitle = args[1];
+    const newContent = args[2];
+    const note = app.notes.whose({name: title})[0];
+    if (newContent) {
+      note.body = newContent;
+      note.name = newTitle || title;
+    } else if (newTitle) {
+      note.name = newTitle;
+    }
+    return true;`,
+    [title, newTitle || "", newContent || ""]
+  );
+};
+
+const moveNote = async (title: string, targetPath: string) => {
+  await runJxa(
+    `${jxaGetFolderPath}
+    const app = Application('Notes');
+    const title = args[0];
+    const targetPath = args[1];
+    const allFolders = Array.from(app.folders());
+    const targetFolder = allFolders.find(f => getFolderPath(f) + '/' + f.name() === targetPath);
+    if (!targetFolder) throw new Error('Folder not found: ' + targetPath);
+    const note = app.notes.whose({name: title})[0];
+    app.move(note, {to: targetFolder});
+    return true;`,
+    [title, targetPath]
+  );
+};
+
+const deleteNote = async (title: string) => {
+  await runJxa(
+    `const app = Application('Notes');
+    const note = app.notes.whose({name: args[0]})[0];
+    app.delete(note);
+    return true;`,
+    [title]
+  );
 };
 
 // Handle tool execution
@@ -364,7 +457,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request, c) => {
     if (name === "create-note") {
       const { title, content } = CreateNoteSchema.parse(args);
       await createNote(title, content);
-      return createTextResponse(`Created note "${title}" successfully.`);
+      await indexNotes(notesTable);
+      return createTextResponse(`Created note "${title}" successfully. Index updated.`);
     } else if (name === "list-notes") {
       return createTextResponse(
         `There are ${await notesTable.countRows()} notes in your Apple Notes database.`
@@ -374,7 +468,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request, c) => {
         const { title } = GetNoteSchema.parse(args);
         const note = await getNoteDetailsByTitle(title);
 
-        return createTextResponse(`${note}`);
+        return createTextResponse(JSON.stringify(note));
       } catch (error) {
         return createTextResponse((error as Error).message);
       }
@@ -394,6 +488,26 @@ server.setRequestHandler(CallToolRequestSchema, async (request, c) => {
       const { query, path, limit } = QueryNotesSchema.parse(args);
       const combinedResults = await searchAndCombineResults(notesTable, query, { path, limit });
       return createTextResponse(JSON.stringify(combinedResults));
+    } else if (name === "edit-note") {
+      const { title, newTitle, newContent } = EditNoteSchema.parse(args);
+      if (!newTitle && !newContent) {
+        return createTextResponse("Nothing to update — provide newTitle and/or newContent.");
+      }
+      await editNote(title, newTitle, newContent);
+      await indexNotes(notesTable);
+      return createTextResponse(
+        `Updated note "${title}"${newTitle ? ` → "${newTitle}"` : ""} successfully. Index updated.`
+      );
+    } else if (name === "move-note") {
+      const { title, targetPath } = MoveNoteSchema.parse(args);
+      await moveNote(title, targetPath);
+      await indexNotes(notesTable);
+      return createTextResponse(`Moved note "${title}" to ${targetPath}. Index updated.`);
+    } else if (name === "delete-note") {
+      const { title } = DeleteNoteSchema.parse(args);
+      await deleteNote(title);
+      await indexNotes(notesTable);
+      return createTextResponse(`Deleted note "${title}". Index updated.`);
     } else {
       throw new Error(`Unknown tool: ${name}`);
     }
