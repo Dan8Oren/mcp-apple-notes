@@ -159,22 +159,23 @@ return titles;
 const getNoteDetailsByTitle = async (title: string) => {
   const note = await runJxa(
     `const app = Application('Notes');
-    const title = "${title}"
-    
+    const title = args[0];
+
     try {
         const note = app.notes.whose({name: title})[0];
-        
+
         const noteInfo = {
             title: note.name(),
             content: note.body(),
             creation_date: note.creationDate().toLocaleString(),
             modification_date: note.modificationDate().toLocaleString()
         };
-        
+
         return JSON.stringify(noteInfo);
     } catch (error) {
         return "{}";
-    }`
+    }`,
+    [title]
   );
 
   return JSON.parse(note as string) as {
