@@ -4,7 +4,7 @@
 
 > **Fork of [RafalWilinski/mcp-apple-notes](https://github.com/RafalWilinski/mcp-apple-notes)** — actively maintained with bug fixes and additional features.
 
-A [Model Context Protocol (MCP)](https://www.anthropic.com/news/model-context-protocol) server that enables semantic search and RAG (Retrieval Augmented Generation) over your Apple Notes. This allows AI assistants like Claude to search and reference your Apple Notes during conversations.
+A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that enables semantic search and RAG (Retrieval Augmented Generation) over your Apple Notes. Works with any MCP-compatible client — Claude Desktop, Cursor, Windsurf, Cline, and others.
 
 ![MCP Apple Notes](./images/demo.png)
 
@@ -14,14 +14,15 @@ A [Model Context Protocol (MCP)](https://www.anthropic.com/news/model-context-pr
 - 📝 Full-text search capabilities
 - 📂 Folder support — list folders, browse by folder, filter search by folder
 - 📊 Vector storage using [LanceDB](https://lancedb.github.io/lancedb/)
-- 🤖 MCP-compatible server for AI assistant integration
+- 🤖 Works with any MCP-compatible client (Claude, Cursor, Windsurf, Cline, etc.)
 - 🍎 Native Apple Notes integration via JXA
 - 🏃‍♂️ Fully local execution - no API keys needed
 
 ## Prerequisites
 
+- macOS (Apple Notes access via JXA)
 - [Bun](https://bun.sh/docs/installation) or Node.js with npm
-- [Claude Desktop](https://claude.ai/download)
+- Any MCP-compatible client (e.g. [Claude Desktop](https://claude.ai/download), Cursor, Windsurf, Cline)
 
 ## Installation
 
@@ -42,37 +43,48 @@ npm install
 
 ## Usage
 
-1. Open Claude desktop app and go to Settings -> Developer -> Edit Config
+Add the server to your MCP client configuration. The config format below works with Claude Desktop, but other clients follow a similar pattern — refer to your client's MCP documentation.
+
+### Claude Desktop
+
+1. Open Settings -> Developer -> Edit Config
 
 ![Claude Desktop Settings](./images/desktop_settings.png)
 
-2. Open the `claude_desktop_config.json` and add the following entry:
+2. Add the following to `claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
-    "local-machine": {
-      "command": "/Users/<YOUR_USER_NAME>/.bun/bin/bun",
-      "args": ["/Users/<YOUR_USER_NAME>/apple-notes-mcp/index.ts"]
+    "apple-notes": {
+      "command": "npx",
+      "args": ["tsx", "/path/to/mcp-apple-notes/index.ts"]
     }
   }
 }
 ```
 
-Important: Replace `<YOUR_USER_NAME>` with your actual username.
+Or if using Bun:
 
-3. Restart Claude desktop app. You should see this:
+```json
+{
+  "mcpServers": {
+    "apple-notes": {
+      "command": "bun",
+      "args": ["run", "/path/to/mcp-apple-notes/index.ts"]
+    }
+  }
+}
+```
 
-![Claude MCP Connection Status](./images/verify_installation.png)
-
-4. Start by indexing your notes. Ask Claude to index your notes by saying something like: "Index my notes" or "Index my Apple Notes".
+3. Restart your client. Start by indexing your notes — ask your AI assistant to "index my notes".
 
 ## Troubleshooting
 
-To see logs:
+For Claude Desktop, check logs at:
 
 ```bash
-tail -n 50 -f ~/Library/Logs/Claude/mcp-server-local-machine.log
+tail -n 50 -f ~/Library/Logs/Claude/mcp-server-apple-notes.log
 # or
 tail -n 50 -f ~/Library/Logs/Claude/mcp.log
 ```
