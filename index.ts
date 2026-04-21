@@ -81,6 +81,11 @@ const DeleteNoteSchema = z.object({
   title: z.string(),
 });
 
+const AppendToNoteSchema = z.object({
+  title: z.string(),
+  content: z.string(),
+});
+
 const server = new Server(
   {
     name: "my-apple-notes-mcp",
@@ -98,7 +103,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       {
         name: "list-notes",
-        description: "Lists just the titles of all my Apple Notes",
+        description: "List indexed Apple Notes with title, path, and timestamps",
         inputSchema: {
           type: "object",
           properties: {},
@@ -166,7 +171,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: "create-note",
         description:
-          "Create a new Apple Note with specified title and content. Must be in HTML format WITHOUT newlines",
+          "Create a new Apple Note with specified title and content. Optionally place it in a folder path. Content must be HTML format WITHOUT newlines",
         inputSchema: {
           type: "object",
           properties: {
@@ -176,6 +181,22 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: "string",
               description:
                 "Optional folder path to create the note in (e.g. iCloud/Work/Projects). Use list-folders to get available paths.",
+            },
+          },
+          required: ["title", "content"],
+        },
+      },
+      {
+        name: "append-to-note",
+        description:
+          "Append HTML content to an existing Apple Note while preserving its title.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            title: { type: "string", description: "Title of the note to append to" },
+            content: {
+              type: "string",
+              description: "HTML content to append to the end of the note body",
             },
           },
           required: ["title", "content"],
@@ -256,6 +277,16 @@ const getNotes = async () => {
   `);
 
   return JSON.parse(result as string) as { title: string; path: string }[];
+};
+
+const getIndexedNotes = async (notesTable: lancedb.Table) => {
+  const rows = await notesTable.query().toArray();
+  return rows.map((row: any) => ({
+    title: row.title,
+    path: row.path,
+    creation_date: row.creation_date,
+    modification_date: row.modification_date,
+  }));
 };
 
 const getFolders = async () => {
@@ -370,7 +401,7 @@ export const indexNotes = async (notesTable: any) => {
       modification_date: note.modification_date,
     }));
 
-  await notesTable.add(chunks);
+  await notesTable.add(chunks, { mode: "overwrite" });
 
   return {
     chunks: chunks.length,
@@ -436,6 +467,20 @@ const editNote = async (title: string, newTitle?: string, newContent?: string) =
   );
 };
 
+const appendToNote = async (title: string, content: string) => {
+  await runJxa(
+    `const app = Application('Notes');
+    const title = args[0];
+    const contentToAppend = args[1];
+    const note = app.notes.whose({name: title})[0];
+    const currentBody = note.body();
+    note.body = currentBody + contentToAppend;
+    note.name = title;
+    return true;`,
+    [title, content]
+  );
+};
+
 const moveNote = async (title: string, targetPath: string) => {
   await runJxa(
     `${jxaGetFolderPath}
@@ -476,9 +521,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request, c) => {
         `Created note "${title}"${folder ? ` in ${folder}` : ""} successfully. Index updated.`
       );
     } else if (name === "list-notes") {
-      return createTextResponse(
-        `There are ${await notesTable.countRows()} notes in your Apple Notes database.`
-      );
+      const notes = await getIndexedNotes(notesTable);
+      return createTextResponse(JSON.stringify(notes));
     } else if (name == "get-note") {
       try {
         const { title } = GetNoteSchema.parse(args);
@@ -514,6 +558,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request, c) => {
       return createTextResponse(
         `Updated note "${title}"${newTitle ? ` → "${newTitle}"` : ""} successfully. Index updated.`
       );
+    } else if (name === "append-to-note") {
+      const { title, content } = AppendToNoteSchema.parse(args);
+      await appendToNote(title, content);
+      await indexNotes(notesTable);
+      return createTextResponse(`Appended content to "${title}" successfully. Index updated.`);
     } else if (name === "move-note") {
       const { title, targetPath } = MoveNoteSchema.parse(args);
       await moveNote(title, targetPath);
