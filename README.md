@@ -92,11 +92,11 @@ tail -n 50 -f ~/Library/Logs/Claude/mcp-server-apple-notes.log
 
 | Tool                | Description                                                              |
 | ------------------- | ------------------------------------------------------------------------ |
-| `list-notes`        | List indexed notes with title, path, and timestamps                      |
+| `list-notes`        | List indexed notes with stable Apple Notes IDs, title, path, and timestamps |
 | `list-folders`      | List all Apple Notes folders with full paths and note counts             |
 | `get-note`          | Get full content and details of a note by title, optionally scoped by path |
-| `get-notes-by-path` | Get all notes in a folder by its full path (e.g. `iCloud/Work/Projects`) |
-| `search-notes`      | Semantic + full-text search with optional path filter and limit          |
+| `get-notes-by-path` | Get all notes in a folder by its full path, including stable note IDs    |
+| `search-notes`      | Semantic + full-text search with optional path filter and limit, including note IDs |
 | `find-note-by-title` | Resolve a note by exact or fuzzy title match, optionally scoped by path |
 | `index-notes`       | Index all notes for search                                               |
 | `create-note`       | Create a new Apple Note, optionally in a specific folder path            |
@@ -114,3 +114,12 @@ For this project, the best split is:
 - Client-side skills or commands for opinionated workflows like journaling, meeting-note cleanup, and digest generation that orchestrate those tools
 
 That keeps the server portable and puts the workflow-specific UX in the layer that can actually use it.
+
+## Response Shape
+
+Tool responses are JSON objects in a consistent envelope:
+
+- Success: `{ "ok": true, "data": ... }`
+- Error: `{ "ok": false, "error": { "type": "...", "message": "..." } }`
+
+Most note-oriented responses now include the stable Apple Notes `id` so clients can track notes safely across renames and moves.
