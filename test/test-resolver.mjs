@@ -4,7 +4,7 @@ import os from "node:os";
 import {
   createNotesTable,
   normalizeTitle,
-  dedupeByTitleAndPath,
+  dedupeById,
   findMatchingNotes,
   resolveNoteReference,
   getIndexedNotes,
@@ -70,20 +70,20 @@ assert(normalizeTitle("") === "", "empty string");
 assert(normalizeTitle("   ") === "", "whitespace-only string");
 assert(normalizeTitle("already clean") === "already clean", "no-op on clean input");
 
-// ─── dedupeByTitleAndPath ────────────────────────────────────────
+// ─── dedupeById ──────────────────────────────────────────────────
 
-console.log("\ndedupeByTitleAndPath tests:");
+console.log("\ndedupeById tests:");
 
 const dupeInput = [
-  { title: "A", path: "p1", creation_date: now, modification_date: now },
-  { title: "A", path: "p1", creation_date: now, modification_date: now },
-  { title: "A", path: "p2", creation_date: now, modification_date: now },
+  { id: "x1", title: "A", path: "p1" },
+  { id: "x1", title: "A", path: "p1" },
+  { id: "x2", title: "A", path: "p2" },
 ];
-const deduped = dedupeByTitleAndPath(dupeInput);
-assert(deduped.length === 2, "removes same title+path duplicates");
-assert(deduped.some((n) => n.path === "p1") && deduped.some((n) => n.path === "p2"), "preserves different paths");
+const deduped = dedupeById(dupeInput);
+assert(deduped.length === 2, "removes same-id duplicates");
+assert(deduped.some((n) => n.id === "x1") && deduped.some((n) => n.id === "x2"), "preserves different ids");
 
-const emptyDeduped = dedupeByTitleAndPath([]);
+const emptyDeduped = dedupeById([]);
 assert(emptyDeduped.length === 0, "handles empty array");
 
 // ─── getIndexedNotes ─────────────────────────────────────────────
@@ -92,6 +92,7 @@ console.log("\ngetIndexedNotes tests:");
 
 const indexed = await getIndexedNotes(notesTable);
 assert(indexed.length === FIXTURE.length, `returns all ${FIXTURE.length} rows (got ${indexed.length})`);
+assert("id" in indexed[0], "has id field");
 assert("title" in indexed[0] && "path" in indexed[0], "has title and path fields");
 assert("creation_date" in indexed[0] && "modification_date" in indexed[0], "has date fields");
 assert(!("content" in indexed[0]), "does not include content");
