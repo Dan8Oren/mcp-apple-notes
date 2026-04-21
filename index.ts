@@ -172,6 +172,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           properties: {
             title: { type: "string" },
             content: { type: "string" },
+            folder: {
+              type: "string",
+              description:
+                "Optional folder path to create the note in (e.g. iCloud/Work/Projects). Use list-folders to get available paths.",
+            },
           },
           required: ["title", "content"],
         },
@@ -392,15 +397,24 @@ export const createNotesTable = async (overrideName?: string) => {
   return { notesTable, time: performance.now() - start };
 };
 
-const createNote = async (title: string, content: string) => {
+const createNote = async (title: string, content: string, folder?: string) => {
   await runJxa(
-    `const app = Application('Notes');
+    `${jxaGetFolderPath}
+    const app = Application('Notes');
+    const targetPath = args[2];
     app.make({new: 'note', withProperties: {
       name: args[0],
       body: args[1]
     }});
+    if (targetPath) {
+      const allFolders = Array.from(app.folders());
+      const targetFolder = allFolders.find(f => getFolderPath(f) + '/' + f.name() === targetPath);
+      if (!targetFolder) throw new Error('Folder not found: ' + targetPath);
+      const note = app.notes.whose({name: args[0]})[0];
+      app.move(note, {to: targetFolder});
+    }
     return true;`,
-    [title, content]
+    [title, content, folder || ""]
   );
 };
 
@@ -455,10 +469,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request, c) => {
 
   try {
     if (name === "create-note") {
-      const { title, content } = CreateNoteSchema.parse(args);
-      await createNote(title, content);
+      const { title, content, folder } = CreateNoteSchema.parse(args);
+      await createNote(title, content, folder);
       await indexNotes(notesTable);
-      return createTextResponse(`Created note "${title}" successfully. Index updated.`);
+      return createTextResponse(
+        `Created note "${title}"${folder ? ` in ${folder}` : ""} successfully. Index updated.`
+      );
     } else if (name === "list-notes") {
       return createTextResponse(
         `There are ${await notesTable.countRows()} notes in your Apple Notes database.`
@@ -584,4 +600,5 @@ export const searchAndCombineResults = async (
 const CreateNoteSchema = z.object({
   title: z.string(),
   content: z.string(),
+  folder: z.string().optional(),
 });
