@@ -56,7 +56,9 @@ const foldersRaw = await runJxa(
 const folders = JSON.parse(foldersRaw);
 
 if (folders.length < 2) {
-  console.log("SKIP: Need at least 2 folders for path-scoping tests. Only found: " + folders.join(", "));
+  console.log(
+    "SKIP: Need at least 2 folders for path-scoping tests. Only found: " + folders.join(", ")
+  );
   console.log(`\n${"=".repeat(40)}`);
   console.log(`Results: 0 passed, 0 failed (skipped)`);
   process.exit(0);
@@ -250,7 +252,10 @@ try {
     return getFolderPath(note);`,
     [moveIdA]
   );
-  assert(String(movedPath) === folderB, `Scoped move: note moved to target folder (got ${movedPath})`);
+  assert(
+    String(movedPath) === folderB,
+    `Scoped move: note moved to target folder (got ${movedPath})`
+  );
 
   // Verify the other note in folderB is unaffected
   const otherPath = await runJxa(
