@@ -92,13 +92,25 @@ tail -n 50 -f ~/Library/Logs/Claude/mcp-server-apple-notes.log
 
 | Tool                | Description                                                              |
 | ------------------- | ------------------------------------------------------------------------ |
-| `list-notes`        | List titles of all indexed notes                                         |
+| `list-notes`        | List indexed notes with title, path, and timestamps                      |
 | `list-folders`      | List all Apple Notes folders with full paths and note counts             |
-| `get-note`          | Get full content and details of a note by title                          |
+| `get-note`          | Get full content and details of a note by title, optionally scoped by path |
 | `get-notes-by-path` | Get all notes in a folder by its full path (e.g. `iCloud/Work/Projects`) |
 | `search-notes`      | Semantic + full-text search with optional path filter and limit          |
+| `find-note-by-title` | Resolve a note by exact or fuzzy title match, optionally scoped by path |
 | `index-notes`       | Index all notes for search                                               |
-| `create-note`       | Create a new Apple Note                                                  |
+| `create-note`       | Create a new Apple Note, optionally in a specific folder path            |
 | `edit-note`         | Edit title and/or content of an existing note                            |
+| `upsert-note`       | Create a note if missing, otherwise append content to the resolved note  |
+| `append-to-note`    | Append HTML content to an existing note                                  |
 | `move-note`         | Move a note to a different folder by path                                |
 | `delete-note`       | Delete a note (moves to Recently Deleted)                                |
+
+## Tooling Strategy
+
+For this project, the best split is:
+
+- MCP tools for reusable Apple Notes capabilities that should work in any client
+- Client-side skills or commands for opinionated workflows like journaling, meeting-note cleanup, and digest generation that orchestrate those tools
+
+That keeps the server portable and puts the workflow-specific UX in the layer that can actually use it.
