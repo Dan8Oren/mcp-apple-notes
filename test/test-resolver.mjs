@@ -4,7 +4,7 @@ import os from "node:os";
 import {
   createNotesTable,
   normalizeTitle,
-  dedupeByTitleAndPath,
+  dedupeById,
   findMatchingNotes,
   resolveNoteReference,
   getIndexedNotes,
@@ -31,7 +31,9 @@ async function assertThrows(fn, expectedSubstring, msg) {
   } catch (e) {
     if (expectedSubstring && !e.message.includes(expectedSubstring)) {
       failed++;
-      console.error(`  FAIL: ${msg} (threw "${e.message}", expected substring "${expectedSubstring}")`);
+      console.error(
+        `  FAIL: ${msg} (threw "${e.message}", expected substring "${expectedSubstring}")`
+      );
     } else {
       passed++;
       console.log(`  PASS: ${msg}`);
@@ -43,15 +45,78 @@ const TEST_TABLE = "test-resolver-" + Date.now();
 const now = new Date().toISOString();
 
 const FIXTURE = [
-  { id: "1", title: "Weekly Standup", content: "standup notes", path: "iCloud/Work", creation_date: now, modification_date: now },
-  { id: "2", title: "Weekly Standup", content: "archived standup", path: "iCloud/Work/Archive", creation_date: now, modification_date: now },
-  { id: "3", title: "  Meeting  NOTES  ", content: "messy title", path: "iCloud/Work", creation_date: now, modification_date: now },
-  { id: "4", title: "Meeting Notes", content: "clean title", path: "iCloud/Work", creation_date: now, modification_date: now },
-  { id: "5", title: "Meeting Notes Q4", content: "quarterly", path: "iCloud/Work/Archive", creation_date: now, modification_date: now },
-  { id: "6", title: "Shopping List", content: "groceries", path: "iCloud/Personal", creation_date: now, modification_date: now },
-  { id: "7", title: "Shopping List - Groceries", content: "detailed groceries", path: "iCloud/Personal", creation_date: now, modification_date: now },
-  { id: "8", title: "Budget 2025", content: "finances", path: "iCloud/Finance", creation_date: now, modification_date: now },
-  { id: "9", title: "Quarterly Budget Review", content: "budget review", path: "iCloud/Finance", creation_date: now, modification_date: now },
+  {
+    id: "1",
+    title: "Weekly Standup",
+    content: "standup notes",
+    path: "iCloud/Work",
+    creation_date: now,
+    modification_date: now,
+  },
+  {
+    id: "2",
+    title: "Weekly Standup",
+    content: "archived standup",
+    path: "iCloud/Work/Archive",
+    creation_date: now,
+    modification_date: now,
+  },
+  {
+    id: "3",
+    title: "  Meeting  NOTES  ",
+    content: "messy title",
+    path: "iCloud/Work",
+    creation_date: now,
+    modification_date: now,
+  },
+  {
+    id: "4",
+    title: "Meeting Notes",
+    content: "clean title",
+    path: "iCloud/Work",
+    creation_date: now,
+    modification_date: now,
+  },
+  {
+    id: "5",
+    title: "Meeting Notes Q4",
+    content: "quarterly",
+    path: "iCloud/Work/Archive",
+    creation_date: now,
+    modification_date: now,
+  },
+  {
+    id: "6",
+    title: "Shopping List",
+    content: "groceries",
+    path: "iCloud/Personal",
+    creation_date: now,
+    modification_date: now,
+  },
+  {
+    id: "7",
+    title: "Shopping List - Groceries",
+    content: "detailed groceries",
+    path: "iCloud/Personal",
+    creation_date: now,
+    modification_date: now,
+  },
+  {
+    id: "8",
+    title: "Budget 2025",
+    content: "finances",
+    path: "iCloud/Finance",
+    creation_date: now,
+    modification_date: now,
+  },
+  {
+    id: "9",
+    title: "Quarterly Budget Review",
+    content: "budget review",
+    path: "iCloud/Finance",
+    creation_date: now,
+    modification_date: now,
+  },
 ];
 
 // Setup
@@ -64,26 +129,32 @@ console.log("normalizeTitle tests:");
 
 assert(normalizeTitle("Hello World") === "hello world", "basic lowercasing");
 assert(normalizeTitle("  Meeting  NOTES  ") === "meeting notes", "whitespace collapse + trim");
-assert(normalizeTitle("Hello, World! #2025") === "hello world 2025", "strip punctuation, keep digits");
+assert(
+  normalizeTitle("Hello, World! #2025") === "hello world 2025",
+  "strip punctuation, keep digits"
+);
 assert(normalizeTitle("Café Résumé") === "café résumé", "unicode letters preserved");
 assert(normalizeTitle("") === "", "empty string");
 assert(normalizeTitle("   ") === "", "whitespace-only string");
 assert(normalizeTitle("already clean") === "already clean", "no-op on clean input");
 
-// ─── dedupeByTitleAndPath ────────────────────────────────────────
+// ─── dedupeById ──────────────────────────────────────────────────
 
-console.log("\ndedupeByTitleAndPath tests:");
+console.log("\ndedupeById tests:");
 
 const dupeInput = [
-  { title: "A", path: "p1", creation_date: now, modification_date: now },
-  { title: "A", path: "p1", creation_date: now, modification_date: now },
-  { title: "A", path: "p2", creation_date: now, modification_date: now },
+  { id: "x1", title: "A", path: "p1" },
+  { id: "x1", title: "A", path: "p1" },
+  { id: "x2", title: "A", path: "p2" },
 ];
-const deduped = dedupeByTitleAndPath(dupeInput);
-assert(deduped.length === 2, "removes same title+path duplicates");
-assert(deduped.some((n) => n.path === "p1") && deduped.some((n) => n.path === "p2"), "preserves different paths");
+const deduped = dedupeById(dupeInput);
+assert(deduped.length === 2, "removes same-id duplicates");
+assert(
+  deduped.some((n) => n.id === "x1") && deduped.some((n) => n.id === "x2"),
+  "preserves different ids"
+);
 
-const emptyDeduped = dedupeByTitleAndPath([]);
+const emptyDeduped = dedupeById([]);
 assert(emptyDeduped.length === 0, "handles empty array");
 
 // ─── getIndexedNotes ─────────────────────────────────────────────
@@ -91,7 +162,11 @@ assert(emptyDeduped.length === 0, "handles empty array");
 console.log("\ngetIndexedNotes tests:");
 
 const indexed = await getIndexedNotes(notesTable);
-assert(indexed.length === FIXTURE.length, `returns all ${FIXTURE.length} rows (got ${indexed.length})`);
+assert(
+  indexed.length === FIXTURE.length,
+  `returns all ${FIXTURE.length} rows (got ${indexed.length})`
+);
+assert("id" in indexed[0], "has id field");
 assert("title" in indexed[0] && "path" in indexed[0], "has title and path fields");
 assert("creation_date" in indexed[0] && "modification_date" in indexed[0], "has date fields");
 assert(!("content" in indexed[0]), "does not include content");

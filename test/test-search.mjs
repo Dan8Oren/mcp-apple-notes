@@ -58,6 +58,10 @@ try {
   const results = await searchAndCombineResults(notesTable, "quarterly goals roadmap");
   assert(results.length > 0, "Returns search results");
   assert(
+    results.every((r) => typeof r.id === "string" && r.id.length > 0),
+    "Returns note ids"
+  );
+  assert(
     results.some((r) => r.title === "Meeting Notes"),
     "Finds the relevant note in results"
   );
