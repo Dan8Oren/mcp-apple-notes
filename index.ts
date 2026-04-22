@@ -222,7 +222,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: "get-notes-by-path",
+        name: "list-notes-by-path",
         description:
           "Get all notes in a specific Apple Notes folder by its full path (returns titles and metadata, no content). Use list-folders to get available paths.",
         inputSchema: {
@@ -927,7 +927,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request, c) => {
     } else if (name === "list-folders") {
       const folders = await getFolders();
       return createJsonResponse({ ok: true, data: folders });
-    } else if (name === "get-notes-by-path") {
+    } else if (name === "list-notes-by-path") {
       const { path } = PathSchema.parse(args);
       const notes = await getNotesByPath(path);
       return createJsonResponse({ ok: true, data: notes });
