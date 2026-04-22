@@ -138,7 +138,11 @@ class NoteNotFoundError extends Error {
 }
 
 class AmbiguousNoteError extends Error {
-  constructor(title: string, matches: { id: string; title: string; path: string }[], detail?: string) {
+  constructor(
+    title: string,
+    matches: { id: string; title: string; path: string }[],
+    detail?: string
+  ) {
     super(
       detail ||
         `Multiple notes match "${title}". Narrow with path. Matches: ${describeMatches(matches.slice(0, 5))}`
@@ -475,13 +479,13 @@ export const findMatchingNotes = async (
   const normalizedQuery = normalizeTitle(requestedTitle);
 
   const exactMatches = scopedNotes.filter((note) => note.title === requestedTitle);
-  const normalizedMatches = scopedNotes.filter((note) => normalizeTitle(note.title) === normalizedQuery);
+  const normalizedMatches = scopedNotes.filter(
+    (note) => normalizeTitle(note.title) === normalizedQuery
+  );
   const fuzzyMatches = scopedNotes
     .filter((note) => {
       const normalizedTitle = normalizeTitle(note.title);
-      return (
-        normalizedTitle.includes(normalizedQuery) || normalizedQuery.includes(normalizedTitle)
-      );
+      return normalizedTitle.includes(normalizedQuery) || normalizedQuery.includes(normalizedTitle);
     })
     .sort((a, b) => {
       const aTitle = normalizeTitle(a.title);
@@ -568,7 +572,9 @@ export const resolveNoteReference = async (
   const suggestions = scopedNotes
     .filter((note) => {
       const normalizedTitle = normalizeTitle(note.title);
-      return normalizedQueryTokens(normalizedQuery).some((token) => normalizedTitle.includes(token));
+      return normalizedQueryTokens(normalizedQuery).some((token) =>
+        normalizedTitle.includes(token)
+      );
     })
     .slice(0, 5);
 
@@ -910,7 +916,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request, c) => {
       return createJsonResponse({ ok: true, data: notes });
     } else if (name == "get-note") {
       const { noteId, title, path } = GetNoteSchema.parse(args);
-      const { note: resolvedNote, matchType } = await resolveNoteId(notesTable, noteId, title, path);
+      const { note: resolvedNote, matchType } = await resolveNoteId(
+        notesTable,
+        noteId,
+        title,
+        path
+      );
       const note = assertNoteDetails(await getNoteDetailsById(resolvedNote.id), resolvedNote.id);
       return createJsonResponse({ ok: true, data: { ...note, resolved_match: matchType } });
     } else if (name === "list-folders") {
@@ -981,7 +992,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request, c) => {
     } else if (name === "upsert-note") {
       const { noteId, title, content, folder } = UpsertNoteSchema.parse(args);
       try {
-        const { note: resolvedNote, matchType } = await resolveNoteId(notesTable, noteId, title, folder);
+        const { note: resolvedNote, matchType } = await resolveNoteId(
+          notesTable,
+          noteId,
+          title,
+          folder
+        );
         await appendToNote(resolvedNote.id, content);
         const note = await refreshIndexedNoteById(notesTable, resolvedNote.id);
         return createJsonResponse({
@@ -1055,7 +1071,10 @@ export const searchAndCombineResults = async (
     path ? results.filter((r) => r.path === path) : results;
 
   const k = 60;
-  const scores = new Map<string, { score: number; id: string; title: string; content: string; path: string }>();
+  const scores = new Map<
+    string,
+    { score: number; id: string; title: string; content: string; path: string }
+  >();
 
   const processResults = (results: any[]) => {
     results.forEach((result, idx) => {
