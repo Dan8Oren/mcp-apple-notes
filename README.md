@@ -95,7 +95,7 @@ tail -n 50 -f ~/Library/Logs/Claude/mcp-server-apple-notes.log
 | `list-notes`         | List indexed notes with stable Apple Notes IDs, title, path, and timestamps         |
 | `list-folders`       | List all Apple Notes folders with full paths and note counts                        |
 | `get-note`           | Get full content and details of a note by title, optionally scoped by path          |
-| `get-notes-by-path`  | Get all notes in a folder by its full path, including stable note IDs               |
+| `list-notes-by-path` | Get all notes in a folder by its full path (e.g. iCloud/Work/Projects)              |
 | `search-notes`       | Semantic + full-text search with optional path filter and limit, including note IDs |
 | `find-note-by-title` | Resolve a note by exact or fuzzy title match, optionally scoped by path             |
 | `index-notes`        | Index all notes for search                                                          |
