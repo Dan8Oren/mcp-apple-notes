@@ -59,38 +59,53 @@ const QueryNotesSchema = z.object({
   limit: z.number().optional(),
 });
 
-const GetNoteSchema = z.object({
-  title: z.string(),
-  path: z.string().optional(),
-});
+const GetNoteSchema = z
+  .object({
+    noteId: z.string().optional(),
+    title: z.string().optional(),
+    path: z.string().optional(),
+  })
+  .refine((d) => d.noteId || d.title, { message: "Either noteId or title must be provided" });
 
 const PathSchema = z.object({
   path: z.string(),
 });
 
-const EditNoteSchema = z.object({
-  title: z.string(),
-  path: z.string().optional(),
-  newTitle: z.string().optional(),
-  newContent: z.string().optional(),
-});
+const EditNoteSchema = z
+  .object({
+    noteId: z.string().optional(),
+    title: z.string().optional(),
+    path: z.string().optional(),
+    newTitle: z.string().optional(),
+    newContent: z.string().optional(),
+  })
+  .refine((d) => d.noteId || d.title, { message: "Either noteId or title must be provided" });
 
-const MoveNoteSchema = z.object({
-  title: z.string(),
-  path: z.string().optional(),
-  targetPath: z.string(),
-});
+const MoveNoteSchema = z
+  .object({
+    noteId: z.string().optional(),
+    title: z.string().optional(),
+    path: z.string().optional(),
+    targetPath: z.string(),
+  })
+  .refine((d) => d.noteId || d.title, { message: "Either noteId or title must be provided" });
 
-const DeleteNoteSchema = z.object({
-  title: z.string(),
-  path: z.string().optional(),
-});
+const DeleteNoteSchema = z
+  .object({
+    noteId: z.string().optional(),
+    title: z.string().optional(),
+    path: z.string().optional(),
+  })
+  .refine((d) => d.noteId || d.title, { message: "Either noteId or title must be provided" });
 
-const AppendToNoteSchema = z.object({
-  title: z.string(),
-  path: z.string().optional(),
-  content: z.string(),
-});
+const AppendToNoteSchema = z
+  .object({
+    noteId: z.string().optional(),
+    title: z.string().optional(),
+    path: z.string().optional(),
+    content: z.string(),
+  })
+  .refine((d) => d.noteId || d.title, { message: "Either noteId or title must be provided" });
 
 const FindNoteByTitleSchema = z.object({
   title: z.string(),
@@ -98,11 +113,14 @@ const FindNoteByTitleSchema = z.object({
   limit: z.number().optional(),
 });
 
-const UpsertNoteSchema = z.object({
-  title: z.string(),
-  content: z.string(),
-  folder: z.string().optional(),
-});
+const UpsertNoteSchema = z
+  .object({
+    noteId: z.string().optional(),
+    title: z.string().optional(),
+    content: z.string(),
+    folder: z.string().optional(),
+  })
+  .refine((d) => d.noteId || d.title, { message: "Either noteId or title must be provided" });
 
 class NoteNotFoundError extends Error {
   constructor(
@@ -172,17 +190,22 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "get-note",
-        description: "Get a note full content and details by title. Optionally scope by folder path.",
+        description:
+          "Get a note full content and details by noteId or title. Optionally scope by folder path.",
         inputSchema: {
           type: "object",
           properties: {
-            title: z.string(),
+            noteId: {
+              type: "string",
+              description: "Apple Notes ID. If provided, skips title resolution.",
+            },
+            title: { type: "string" },
             path: {
               type: "string",
               description: "Optional folder path to disambiguate duplicate titles",
             },
           },
-          required: ["title"],
+          required: [],
         },
       },
       {
@@ -263,10 +286,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: "append-to-note",
         description:
-          "Append HTML content to an existing Apple Note while preserving its title. Optionally scope by folder path.",
+          "Append HTML content to an existing Apple Note while preserving its title. Identify note by noteId or title.",
         inputSchema: {
           type: "object",
           properties: {
+            noteId: {
+              type: "string",
+              description: "Apple Notes ID. If provided, skips title resolution.",
+            },
             title: { type: "string", description: "Title of the note to append to" },
             path: {
               type: "string",
@@ -277,16 +304,20 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description: "HTML content to append to the end of the note body",
             },
           },
-          required: ["title", "content"],
+          required: ["content"],
         },
       },
       {
         name: "upsert-note",
         description:
-          "Create a note if it does not exist; otherwise append HTML content to the resolved existing note.",
+          "Create a note if it does not exist; otherwise append HTML content to the resolved existing note. Identify existing note by noteId or title.",
         inputSchema: {
           type: "object",
           properties: {
+            noteId: {
+              type: "string",
+              description: "Apple Notes ID. If provided, appends to the existing note directly.",
+            },
             title: { type: "string" },
             content: { type: "string" },
             folder: {
@@ -295,15 +326,20 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                 "Optional folder path used both for note creation and for resolving an existing note",
             },
           },
-          required: ["title", "content"],
+          required: ["content"],
         },
       },
       {
         name: "edit-note",
-        description: "Edit an existing Apple Note's title and/or content by its current title",
+        description:
+          "Edit an existing Apple Note's title and/or content by noteId or current title",
         inputSchema: {
           type: "object",
           properties: {
+            noteId: {
+              type: "string",
+              description: "Apple Notes ID. If provided, skips title resolution.",
+            },
             title: { type: "string", description: "Current title of the note to edit" },
             path: {
               type: "string",
@@ -315,16 +351,20 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description: "New content in HTML format (optional, replaces entire content)",
             },
           },
-          required: ["title"],
+          required: [],
         },
       },
       {
         name: "move-note",
         description:
-          "Move a note to a different folder by specifying the target folder path. Optionally scope the source note by folder path. Use list-folders to get available paths.",
+          "Move a note to a different folder by noteId or title. Optionally scope the source note by folder path. Use list-folders to get available paths.",
         inputSchema: {
           type: "object",
           properties: {
+            noteId: {
+              type: "string",
+              description: "Apple Notes ID. If provided, skips title resolution.",
+            },
             title: { type: "string", description: "Title of the note to move" },
             path: {
               type: "string",
@@ -335,23 +375,27 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description: "Full folder path to move the note to (e.g. iCloud/Work/Projects)",
             },
           },
-          required: ["title", "targetPath"],
+          required: ["targetPath"],
         },
       },
       {
         name: "delete-note",
         description:
-          "Delete an Apple Note by title. The note will be moved to Recently Deleted. Optionally scope by folder path.",
+          "Delete an Apple Note by noteId or title. The note will be moved to Recently Deleted. Optionally scope by folder path.",
         inputSchema: {
           type: "object",
           properties: {
+            noteId: {
+              type: "string",
+              description: "Apple Notes ID. If provided, skips title resolution.",
+            },
             title: { type: "string", description: "Title of the note to delete" },
             path: {
               type: "string",
               description: "Optional folder path to disambiguate duplicate titles",
             },
           },
-          required: ["title"],
+          required: [],
         },
       },
     ],
@@ -454,6 +498,24 @@ export const findMatchingNotes = async (
     normalizedMatches,
     fuzzyMatches,
   };
+};
+
+const resolveNoteId = async (
+  notesTable: lancedb.Table,
+  noteId?: string,
+  title?: string,
+  path?: string
+) => {
+  if (noteId) {
+    const details = await getNoteDetailsById(noteId);
+    if (!details.id) throw new NoteNotFoundError(noteId);
+    return {
+      note: { id: details.id, title: details.title, path: details.path },
+      matchType: "id" as const,
+    };
+  }
+  if (!title) throw new Error("Either noteId or title must be provided");
+  return resolveNoteReference(notesTable, title, path);
 };
 
 const escapeSqlString = (value: string) => value.replace(/'/g, "''");
@@ -847,8 +909,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request, c) => {
       const notes = await getIndexedNotes(notesTable);
       return createJsonResponse({ ok: true, data: notes });
     } else if (name == "get-note") {
-      const { title, path } = GetNoteSchema.parse(args);
-      const { note: resolvedNote, matchType } = await resolveNoteReference(notesTable, title, path);
+      const { noteId, title, path } = GetNoteSchema.parse(args);
+      const { note: resolvedNote, matchType } = await resolveNoteId(notesTable, noteId, title, path);
       const note = assertNoteDetails(await getNoteDetailsById(resolvedNote.id), resolvedNote.id);
       return createJsonResponse({ ok: true, data: { ...note, resolved_match: matchType } });
     } else if (name === "list-folders") {
@@ -891,14 +953,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request, c) => {
         },
       });
     } else if (name === "edit-note") {
-      const { title, path, newTitle, newContent } = EditNoteSchema.parse(args);
+      const { noteId, title, path, newTitle, newContent } = EditNoteSchema.parse(args);
       if (!newTitle && !newContent) {
         return createJsonResponse({
           ok: false,
           error: { type: "ValidationError", message: "Provide newTitle and/or newContent." },
         });
       }
-      const { note: resolvedNote } = await resolveNoteReference(notesTable, title, path);
+      const { note: resolvedNote } = await resolveNoteId(notesTable, noteId, title, path);
       await editNote(resolvedNote.id, newTitle, newContent);
       const note = await refreshIndexedNoteById(notesTable, resolvedNote.id);
       return createJsonResponse({
@@ -907,8 +969,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request, c) => {
         message: `Updated note "${resolvedNote.title}"${newTitle ? ` → "${newTitle}"` : ""}.`,
       });
     } else if (name === "append-to-note") {
-      const { title, path, content } = AppendToNoteSchema.parse(args);
-      const { note: resolvedNote } = await resolveNoteReference(notesTable, title, path);
+      const { noteId, title, path, content } = AppendToNoteSchema.parse(args);
+      const { note: resolvedNote } = await resolveNoteId(notesTable, noteId, title, path);
       await appendToNote(resolvedNote.id, content);
       const note = await refreshIndexedNoteById(notesTable, resolvedNote.id);
       return createJsonResponse({
@@ -917,9 +979,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request, c) => {
         message: `Appended content to "${resolvedNote.title}".`,
       });
     } else if (name === "upsert-note") {
-      const { title, content, folder } = UpsertNoteSchema.parse(args);
+      const { noteId, title, content, folder } = UpsertNoteSchema.parse(args);
       try {
-        const { note: resolvedNote, matchType } = await resolveNoteReference(notesTable, title, folder);
+        const { note: resolvedNote, matchType } = await resolveNoteId(notesTable, noteId, title, folder);
         await appendToNote(resolvedNote.id, content);
         const note = await refreshIndexedNoteById(notesTable, resolvedNote.id);
         return createJsonResponse({
@@ -932,16 +994,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request, c) => {
           throw error;
         }
       }
-      const noteId = await createNote(title, content, folder);
-      const note = await refreshIndexedNoteById(notesTable, noteId);
+      const createdNoteId = await createNote(title!, content, folder);
+      const note = await refreshIndexedNoteById(notesTable, createdNoteId);
       return createJsonResponse({
         ok: true,
         data: note,
         message: `Created note "${title}"${folder ? ` in ${folder}` : ""}.`,
       });
     } else if (name === "move-note") {
-      const { title, path, targetPath } = MoveNoteSchema.parse(args);
-      const { note: resolvedNote } = await resolveNoteReference(notesTable, title, path);
+      const { noteId, title, path, targetPath } = MoveNoteSchema.parse(args);
+      const { note: resolvedNote } = await resolveNoteId(notesTable, noteId, title, path);
       await moveNote(resolvedNote.id, targetPath);
       const note = await refreshIndexedNoteById(notesTable, resolvedNote.id);
       return createJsonResponse({
@@ -950,8 +1012,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request, c) => {
         message: `Moved note "${resolvedNote.title}" to ${targetPath}.`,
       });
     } else if (name === "delete-note") {
-      const { title, path } = DeleteNoteSchema.parse(args);
-      const { note: resolvedNote } = await resolveNoteReference(notesTable, title, path);
+      const { noteId, title, path } = DeleteNoteSchema.parse(args);
+      const { note: resolvedNote } = await resolveNoteId(notesTable, noteId, title, path);
       await deleteNote(resolvedNote.id);
       await removeIndexedNoteById(notesTable, resolvedNote.id);
       return createJsonResponse({
