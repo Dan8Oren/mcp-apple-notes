@@ -96,8 +96,8 @@ try {
   console.error(`  FAIL:`, e.message);
 }
 
-// Test 3: get-notes-by-path matches by full path
-console.log("\nTest 3: get-notes-by-path matches by full path...");
+// Test 3: list-notes-by-path matches by full path
+console.log("\nTest 3: list-notes-by-path matches by full path...");
 try {
   // First get all folder paths
   const foldersResult = await runJxa(`
@@ -147,8 +147,8 @@ try {
   console.error(`  FAIL:`, e.message);
 }
 
-// Test 4: get-notes-by-path returns empty for invalid path
-console.log("\nTest 4: get-notes-by-path returns empty for invalid path...");
+// Test 4: list-notes-by-path returns empty for invalid path
+console.log("\nTest 4: list-notes-by-path returns empty for invalid path...");
 try {
   const result = await runJxa(
     `${jxaGetFolderPath}
