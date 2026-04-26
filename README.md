@@ -1,8 +1,12 @@
+<div align="center">
+  <h3>
+  <a href="#features">Features</a> · <a href="#security--transparency">Security</a> · <a href="#installation--setup">Installation</a> · <a href="#available-tools">Tools</a> · <a href="#verify-before-you-trust">Verification</a> · <a href="#response-shape">Response Shape</a>
+  </h3>
+</div>
+
 # MCP Apple Notes
 
 ![MCP Apple Notes](./images/logo.png)
-
-> **Fork of [RafalWilinski/mcp-apple-notes](https://github.com/RafalWilinski/mcp-apple-notes)** — actively maintained with bug fixes and additional features.
 
 A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that enables semantic search and RAG (Retrieval Augmented Generation) over your Apple Notes. Works with any MCP-compatible client — Claude Desktop, Cursor, Windsurf, Cline, and others.
 
@@ -16,49 +20,36 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that e
 - 📊 Vector storage using [LanceDB](https://lancedb.github.io/lancedb/)
 - 🤖 Works with any MCP-compatible client (Claude, Cursor, Windsurf, Cline, etc.)
 - 🍎 Native Apple Notes integration via JXA
-- 🏃‍♂️ Fully local execution - no API keys needed
+- 🏃‍♂️ Fully local execution — no API keys needed
 
-## Prerequisites
+## Security & Transparency
 
-- macOS (Apple Notes access via JXA)
-- [Bun](https://bun.sh/docs/installation) or Node.js with npm
-- Any MCP-compatible client (e.g. [Claude Desktop](https://claude.ai/download), Cursor, Windsurf, Cline)
+Because this server interacts with your **private Apple Notes**, it is designed with absolute transparency in mind. It runs 100% locally on your Mac.
 
-## Installation
+- **No Cloud, No Telemetry** — No API keys, no data leaving your machine.
+- **Native Apple JXA** — Uses Apple's official [JavaScript for Automation](https://developer.apple.com/library/archive/releasenotes/InterapplicationCommunication/RN-JavaScriptForAutomation/) scripting bridge.
+- **Embeddings on-device** — The [`all-MiniLM-L6-v2`](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) model runs locally via [`@huggingface/transformers`](https://github.com/huggingface/transformers.js).
+- **Verifiable** — You are highly encouraged to read every line of code (especially [`index.ts`](./index.ts)) before it ever touches your notes.
+- **GitHub releases** include SHA-256 checksums so you can verify downloaded artifacts.
 
-1. Clone the repository:
+## Installation & Setup
 
+Choose the installation method that fits your workflow.
+
+---
+
+### Method 1: Install from source (recommended)
+
+By cloning the repository locally, you can inspect the source code and know exactly what is executing on your machine.
+
+**Prerequisites:** [Node.js](https://nodejs.org) (v18+) or [Bun](https://bun.sh/docs/installation)
+
+<details>
+<summary><strong>Using Bun?</strong></summary>
+  
 ```bash
-git clone https://github.com/Dan8Oren/mcp-apple-notes
-cd mcp-apple-notes
+git clone https://github.com/Dan8Oren/mcp-apple-notes && cd mcp-apple-notes && bun install
 ```
-
-2. Install dependencies:
-
-```bash
-bun install
-# or
-npm install
-```
-
-## Usage
-
-Add the following MCP server configuration to your client. Replace `/path/to/` with the actual path where you cloned the repo.
-
-Using npm/npx:
-
-```json
-{
-  "mcpServers": {
-    "apple-notes": {
-      "command": "npx",
-      "args": ["tsx", "/path/to/mcp-apple-notes/index.ts"]
-    }
-  }
-}
-```
-
-Using Bun:
 
 ```json
 {
@@ -71,20 +62,88 @@ Using Bun:
 }
 ```
 
-After adding the config, restart your client and ask your AI assistant to "index my notes" to get started.
+</details>
+
+### Using NPM:
+
+```bash
+git clone https://github.com/Dan8Oren/mcp-apple-notes && cd mcp-apple-notes && npm install
+```
+
+Then add the server to your MCP client config. Replace `/path/to/mcp-apple-notes` with where you cloned the repo:
+
+```json
+{
+  "mcpServers": {
+    "apple-notes": {
+      "command": "npx",
+      "args": ["tsx", "/path/to/mcp-apple-notes/index.ts"]
+    }
+  }
+}
+```
+
+---
+
+### Method 2: Quick start via npx
+
+If you prefer a **zero-setup** approach and trust the published npm package, you can simply add this directly to your MCP config:
+
+```json
+{
+  "mcpServers": {
+    "apple-notes": {
+      "command": "npx",
+      "args": ["-y", "@dan8oren/mcp-apple-notes"]
+    }
+  }
+}
+```
+
+---
+
+After setup, restart your client and ask your AI assistant to **"index my notes"** to get started.
+
+### Per-client instructions
 
 <details>
-<summary>Claude Desktop setup</summary>
+<summary><strong>Claude Desktop</strong></summary>
 
-1. Open Settings -> Developer -> Edit Config
-2. Paste one of the JSON configs above into `claude_desktop_config.json`
+1. Open **Settings → Developer → Edit Config**
+2. Paste your chosen JSON config into `claude_desktop_config.json`
 3. Restart Claude Desktop
 
-Logs can be found at:
+Logs:
 
 ```bash
 tail -n 50 -f ~/Library/Logs/Claude/mcp-server-apple-notes.log
 ```
+
+</details>
+
+<details>
+<summary><strong>Claude Code</strong></summary>
+
+```bash
+# npm version:
+claude mcp add apple-notes npx -- -y @dan8oren/mcp-apple-notes
+# or from source:
+claude mcp add apple-notes npx -- tsx /path/to/mcp-apple-notes/index.ts
+```
+
+</details>
+
+<details>
+<summary><strong>Cursor</strong></summary>
+
+Add the JSON config to `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` in your project root.
+
+</details>
+
+<details>
+<summary><strong>Windsurf</strong></summary>
+
+Add the JSON config to `~/.windsurf/mcp.json`.
 
 </details>
 
@@ -103,14 +162,56 @@ tail -n 50 -f ~/Library/Logs/Claude/mcp-server-apple-notes.log
 | `move-note`      | Move a note to a different folder                                          |
 | `delete-note`    | Delete a note (moves to Recently Deleted)                                  |
 
-## Tooling Strategy
+## Verify Before You Trust
 
-For this project, the best split is:
+Every Apple Notes operation is a [JXA](https://developer.apple.com/library/archive/releasenotes/InterapplicationCommunication/RN-JavaScriptForAutomation/) call you can inspect in [`index.ts`](./index.ts). No network requests, no background syncing — just local scripting bridge calls.
 
-- MCP tools for reusable Apple Notes capabilities that should work in any client
-- Client-side skills or commands for opinionated workflows like journaling, meeting-note cleanup, and digest generation that orchestrate those tools
+### Verbose mode
 
-That keeps the server portable and puts the workflow-specific UX in the layer that can actually use it.
+Enable verbose logging to see every JXA call before it executes (logged to stderr):
+
+**CLI flag** — add `--verbose` to your MCP client config args:
+
+```json
+{
+  "mcpServers": {
+    "apple-notes": {
+      "command": "npx",
+      "args": ["--verbose", "-y", "@dan8oren/mcp-apple-notes"]
+    }
+  }
+}
+```
+
+**Environment variable** — for clients that support `env`:
+
+```json
+{
+  "mcpServers": {
+    "apple-notes": {
+      "command": "npx",
+      "args": ["-y", "@dan8oren/mcp-apple-notes"],
+      "env": { "MCP_APPLE_NOTES_VERBOSE": "1" }
+    }
+  }
+}
+```
+
+### JXA operations reference
+
+| Operation            | Type        | What it does                                 |
+| -------------------- | ----------- | -------------------------------------------- |
+| `getNotes`           | Read        | Lists all notes (id, title, folder path)     |
+| `getFolders`         | Read        | Lists all folders with paths and note counts |
+| `getNotesByPath`     | Read        | Gets notes in a specific folder              |
+| `getNoteDetailsById` | Read        | Gets full content of one note by ID          |
+| `createNote`         | Write       | Creates a new note with title and content    |
+| `appendToNote`       | Write       | Appends HTML content to an existing note     |
+| `editNote`           | Write       | Updates title and/or content of a note       |
+| `moveNote`           | Write       | Moves a note to a different folder           |
+| `deleteNote`         | Destructive | Moves a note to Recently Deleted             |
+
+All operations go through Apple's JXA scripting bridge (`Application('Notes')`). No direct file system access, no network calls. The `delete` operation is non-permanent — notes go to Recently Deleted and can be recovered within 30 days.
 
 ## Response Shape
 
@@ -120,3 +221,7 @@ Tool responses are JSON objects in a consistent envelope:
 - Error: `{ "ok": false, "error": { "type": "...", "message": "..." } }`
 
 Most note-oriented responses now include the stable Apple Notes `id` so clients can track notes safely across renames and moves.
+
+## Acknowledgments
+
+Originally based on [RafalWilinski/mcp-apple-notes](https://github.com/RafalWilinski/mcp-apple-notes).

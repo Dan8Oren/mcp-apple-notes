@@ -12,6 +12,16 @@ import { type Float, Float32, Utf8 } from "apache-arrow";
 import { pipeline } from "@huggingface/transformers";
 import { marked } from "marked";
 
+const VERBOSE = process.argv.includes("--verbose") || process.env.MCP_APPLE_NOTES_VERBOSE === "1";
+
+const verboseRunJxa: typeof runJxa = async (code, args) => {
+  if (VERBOSE) {
+    const label = typeof code === "string" ? code.trim().split("\n")[0].slice(0, 80) : "[function]";
+    console.error(`[jxa] ${label}${args?.length ? ` | args: ${JSON.stringify(args)}` : ""}`);
+  }
+  return runJxa(code, args);
+};
+
 const { turndown } = new TurndownService();
 const markdownToHtml = (md: string) => marked(md, { async: false }) as string;
 const db = await lancedb.connect(path.join(os.homedir(), ".mcp-apple-notes", "data"));
@@ -377,7 +387,7 @@ const jxaGetFolderPath = `
 `;
 
 const getNotes = async () => {
-  const result = await runJxa(`
+  const result = await verboseRunJxa(`
     ${jxaGetFolderPath}
     const app = Application('Notes');
     app.includeStandardAdditions = true;
@@ -533,7 +543,7 @@ export const resolveNoteReference = async (
 };
 
 const getFolders = async () => {
-  const result = await runJxa(`
+  const result = await verboseRunJxa(`
     ${jxaGetFolderPath}
     const app = Application('Notes');
     app.includeStandardAdditions = true;
@@ -549,7 +559,7 @@ const getFolders = async () => {
 };
 
 const getNotesByPath = async (folderPath: string, includeContent = false) => {
-  const result = await runJxa(
+  const result = await verboseRunJxa(
     `${jxaGetFolderPath}
     const app = Application('Notes');
     app.includeStandardAdditions = true;
@@ -584,7 +594,7 @@ const getNotesByPath = async (folderPath: string, includeContent = false) => {
 };
 
 const getNoteDetailsById = async (id: string) => {
-  const note = await runJxa(
+  const note = await verboseRunJxa(
     `${jxaGetFolderPath}
     const app = Application('Notes');
     const id = args[0];
@@ -732,7 +742,7 @@ const removeIndexedNoteById = async (notesTable: lancedb.Table, noteId: string) 
 };
 
 const createNote = async (title: string, content: string, folder?: string) => {
-  const result = await runJxa(
+  const result = await verboseRunJxa(
     `${jxaGetFolderPath}
     const app = Application('Notes');
     const targetPath = args[2];
@@ -753,7 +763,7 @@ const createNote = async (title: string, content: string, folder?: string) => {
 };
 
 const appendToNote = async (noteId: string, content: string) => {
-  await runJxa(
+  await verboseRunJxa(
     `const app = Application('Notes');
     const noteId = args[0];
     const contentToAppend = args[1];
@@ -770,7 +780,7 @@ const appendToNote = async (noteId: string, content: string) => {
 };
 
 const moveNote = async (noteId: string, targetPath: string) => {
-  await runJxa(
+  await verboseRunJxa(
     `${jxaGetFolderPath}
     const app = Application('Notes');
     const noteId = args[0];
@@ -789,7 +799,7 @@ const moveNote = async (noteId: string, targetPath: string) => {
 };
 
 const deleteNote = async (noteId: string) => {
-  await runJxa(
+  await verboseRunJxa(
     `const app = Application('Notes');
     const noteId = args[0];
     const note = Array.from(app.notes()).find(note => {
@@ -803,7 +813,7 @@ const deleteNote = async (noteId: string) => {
 };
 
 const editNote = async (noteId: string, newTitle?: string, newContent?: string) => {
-  await runJxa(
+  await verboseRunJxa(
     `const app = Application('Notes');
     const noteId = args[0];
     const newTitle = args[1];
@@ -976,6 +986,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request, c) => {
 const transport = new StdioServerTransport();
 await server.connect(transport);
 console.error("Local Machine MCP Server running on stdio");
+if (VERBOSE) console.error("Verbose mode enabled — JXA calls will be logged to stderr");
 
 /**
  * Search for notes by title or content using both vector and FTS search.
