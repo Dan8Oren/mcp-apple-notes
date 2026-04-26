@@ -34,9 +34,13 @@ Choose the installation method that fits your workflow.
 
 By cloning the repository locally, you can inspect the source code and know exactly what is executing on your machine.
 
+**Prerequisites:** [Node.js](https://nodejs.org) (v18+) or [Bun](https://bun.sh/docs/installation)
+
 ```bash
 git clone https://github.com/Dan8Oren/mcp-apple-notes && cd mcp-apple-notes && npm install
 ```
+
+> Using Bun? Replace `npm install` with `bun install` above.
 
 Then add the server to your MCP client config. Replace `/path/to/mcp-apple-notes` with where you cloned the repo:
 
@@ -46,19 +50,6 @@ Then add the server to your MCP client config. Replace `/path/to/mcp-apple-notes
     "apple-notes": {
       "command": "npx",
       "args": ["tsx", "/path/to/mcp-apple-notes/index.ts"]
-    }
-  }
-}
-```
-
-Or with Bun:
-
-```json
-{
-  "mcpServers": {
-    "apple-notes": {
-      "command": "bun",
-      "args": ["run", "/path/to/mcp-apple-notes/index.ts"]
     }
   }
 }
