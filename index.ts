@@ -204,16 +204,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "search-notes",
-        description:
-          "Semantic and full-text search over notes. Optionally filter by folder path.",
+        description: "Semantic and full-text search over notes. Optionally filter by folder path.",
         inputSchema: {
           type: "object",
           properties: {
             query: { type: "string" },
             path: {
               type: "string",
-              description:
-                "Optional: filter results to a specific folder path (e.g. iCloud/Work)",
+              description: "Optional: filter results to a specific folder path (e.g. iCloud/Work)",
             },
             limit: { type: "number", description: "Max results to return (default: 50)" },
           },
@@ -925,7 +923,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request, c) => {
         });
       }
       const { note: resolvedNote } = await resolveNoteId(notesTable, noteId, title, path);
-      await editNote(resolvedNote.id, newTitle, newContent ? markdownToHtml(newContent) : undefined);
+      await editNote(
+        resolvedNote.id,
+        newTitle,
+        newContent ? markdownToHtml(newContent) : undefined
+      );
       const note = await refreshIndexedNoteById(notesTable, resolvedNote.id);
       return createJsonResponse({
         ok: true,

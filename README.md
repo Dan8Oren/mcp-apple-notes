@@ -90,18 +90,18 @@ tail -n 50 -f ~/Library/Logs/Claude/mcp-server-apple-notes.log
 
 ## Available Tools
 
-| Tool             | Description                                                                              |
-| ---------------- | ---------------------------------------------------------------------------------------- |
-| `index-notes`    | Index all notes for semantic search. Run this first                                      |
-| `list-folders`   | List all Apple Notes folders with full paths and note counts                             |
-| `list-notes`     | List notes with metadata. Optional `path` filter and `includeContent` flag               |
-| `search-notes`   | Semantic + full-text search with optional path filter and limit                          |
-| `get-note`       | Get full content by noteId or title. Returns candidates on ambiguity                     |
-| `create-note`    | Create a new note with markdown content, optionally in a folder                          |
-| `edit-note`      | Edit title and/or content (markdown) of an existing note                                 |
-| `append-to-note` | Append markdown content to an existing note                                              |
-| `move-note`      | Move a note to a different folder                                                        |
-| `delete-note`    | Delete a note (moves to Recently Deleted)                                                |
+| Tool             | Description                                                                |
+| ---------------- | -------------------------------------------------------------------------- |
+| `index-notes`    | Index all notes for semantic search. Run this first                        |
+| `list-folders`   | List all Apple Notes folders with full paths and note counts               |
+| `list-notes`     | List notes with metadata. Optional `path` filter and `includeContent` flag |
+| `search-notes`   | Semantic + full-text search with optional path filter and limit            |
+| `get-note`       | Get full content by noteId or title. Returns candidates on ambiguity       |
+| `create-note`    | Create a new note with markdown content, optionally in a folder            |
+| `edit-note`      | Edit title and/or content (markdown) of an existing note                   |
+| `append-to-note` | Append markdown content to an existing note                                |
+| `move-note`      | Move a note to a different folder                                          |
+| `delete-note`    | Delete a note (moves to Recently Deleted)                                  |
 
 ## Tooling Strategy
 
