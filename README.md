@@ -37,6 +37,8 @@ Because this server interacts with your **private Apple Notes**, it is designed 
 
 Choose the installation method that fits your workflow.
 
+---
+
 ### Method 1: Install from source (recommended)
 
 By cloning the repository locally, you can inspect the source code and know exactly what is executing on your machine.
@@ -81,10 +83,10 @@ Then add the server to your MCP client config. Replace `/path/to/mcp-apple-notes
   }
 }
 ```
-
+---
 ### Method 2: Quick start via npx
 
-If you prefer a zero-setup approach and trust the published npm package, you can skip cloning entirely. Add this directly to your MCP client config:
+If you prefer a **zero-setup** approach and trust the published npm package, you can simply add this directly to your MCP config:
 
 ```json
 {
