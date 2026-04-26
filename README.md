@@ -6,6 +6,8 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that e
 
 ![MCP Apple Notes Demo](./images/demo.png)
 
+[Features](#features) · [Security](#security--transparency) · [Installation](#installation--setup) · [Tools](#available-tools) · [Verification](#verify-before-you-trust) · [Response Shape](#response-shape)
+
 ## Features
 
 - 🔍 Semantic search over Apple Notes using [`all-MiniLM-L6-v2`](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) on-device embeddings model
@@ -36,7 +38,6 @@ By cloning the repository locally, you can inspect the source code and know exac
 
 **Prerequisites:** [Node.js](https://nodejs.org) (v18+) or [Bun](https://bun.sh/docs/installation)
 
-
 <details>
 <summary><strong>Using Bun?</strong></summary>
   
@@ -54,6 +55,7 @@ git clone https://github.com/Dan8Oren/mcp-apple-notes && cd mcp-apple-notes && b
   }
 }
 ```
+
 </details>
 
 ### Using NPM:
