@@ -32,7 +32,7 @@ jobs:
 
       - name: Compute checksums
         run: |
-          sha256sum apple-notes-mcp-*.tgz > checksums-sha256.txt
+          sha256sum dan8oren-mcp-apple-notes-*.tgz > checksums-sha256.txt
           sha256sum dist/index.js >> checksums-sha256.txt
           cat checksums-sha256.txt
 
@@ -41,10 +41,10 @@ jobs:
         with:
           generate_release_notes: true
           files: |
-            apple-notes-mcp-*.tgz
+            dan8oren-mcp-apple-notes-*.tgz
             checksums-sha256.txt
 
       - name: Publish to npm
-        run: npm publish
+        run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
