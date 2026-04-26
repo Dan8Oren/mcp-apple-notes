@@ -6,7 +6,9 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that e
 
 ![MCP Apple Notes Demo](./images/demo.png)
 
-[Features](#features) · [Security](#security--transparency) · [Installation](#installation--setup) · [Tools](#available-tools) · [Verification](#verify-before-you-trust) · [Response Shape](#response-shape)
+<div align="center">
+  <a href="#features">Features</a> · <a href="#security--transparency">Security</a> · <a href="#installation--setup">Installation</a> · <a href="#available-tools">Tools</a> · <a href="#verify-before-you-trust">Verification</a> · <a href="#response-shape">Response Shape</a>
+</div>
 
 ## Features
 
