@@ -21,6 +21,7 @@
     "@lancedb/lancedb": "^0.14.0",
     "@langchain/textsplitters": "^0.1.0",
     "@modelcontextprotocol/sdk": "^1.0.3",
+    "marked": "^18.0.0",
     "run-jxa": "^3.0.0",
     "turndown": "^7.2.0",
     "zod": "^3.24.1"

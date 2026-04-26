@@ -10,8 +10,10 @@ import TurndownService from "turndown";
 import { EmbeddingFunction, LanceSchema, register } from "@lancedb/lancedb/embedding";
 import { type Float, Float32, Utf8 } from "apache-arrow";
 import { pipeline } from "@huggingface/transformers";
+import { marked } from "marked";
 
 const { turndown } = new TurndownService();
+const markdownToHtml = (md: string) => marked(md, { async: false }) as string;
 const db = await lancedb.connect(path.join(os.homedir(), ".mcp-apple-notes", "data"));
 const extractor = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2");
 
@@ -162,9 +164,28 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
       {
+        name: "index-notes",
+        description:
+          "Index all Apple Notes for semantic search. Run this first — takes seconds to minutes depending on note count.",
+        inputSchema: {
+          type: "object",
+          properties: {},
+          required: [],
+        },
+      },
+      {
+        name: "list-folders",
+        description: "List all Apple Notes folders with full paths and note counts",
+        inputSchema: {
+          type: "object",
+          properties: {},
+          required: [],
+        },
+      },
+      {
         name: "list-notes",
         description:
-          "List indexed Apple Notes with title, path, and timestamps. Optionally filter by folder path and include note content.",
+          "List Apple Notes with title, path, and timestamps. Optionally filter by folder path and include note content.",
         inputSchema: {
           type: "object",
           properties: {
@@ -182,13 +203,21 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: "index-notes",
+        name: "search-notes",
         description:
-          "Index all my Apple Notes for Semantic Search. Please tell the user that the sync takes couple of seconds up to couple of minutes depending on how many notes you have.",
+          "Semantic and full-text search over notes. Optionally filter by folder path.",
         inputSchema: {
           type: "object",
-          properties: {},
-          required: [],
+          properties: {
+            query: { type: "string" },
+            path: {
+              type: "string",
+              description:
+                "Optional: filter results to a specific folder path (e.g. iCloud/Work)",
+            },
+            limit: { type: "number", description: "Max results to return (default: 50)" },
+          },
+          required: ["query"],
         },
       },
       {
@@ -212,39 +241,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: "list-folders",
-        description: "Lists all folders in Apple Notes with note counts",
-        inputSchema: {
-          type: "object",
-          properties: {},
-          required: [],
-        },
-      },
-      {
-        name: "search-notes",
-        description: "Search for notes by title or content. Optionally filter by folder path.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            query: { type: "string" },
-            path: {
-              type: "string",
-              description: "Optional: filter results to a specific folder path (e.g. iCloud/Work)",
-            },
-            limit: { type: "number", description: "Max results to return (default: 50)" },
-          },
-          required: ["query"],
-        },
-      },
-      {
         name: "create-note",
         description:
-          "Create a new Apple Note with specified title and content. Optionally place it in a folder path. Content must be HTML format WITHOUT newlines",
+          "Create a new Apple Note with a title and markdown content. Optionally place it in a folder path.",
         inputSchema: {
           type: "object",
           properties: {
             title: { type: "string" },
-            content: { type: "string" },
+            content: {
+              type: "string",
+              description: "Note content in markdown format",
+            },
             folder: {
               type: "string",
               description:
@@ -255,33 +262,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: "append-to-note",
-        description:
-          "Append HTML content to an existing Apple Note while preserving its title. Identify note by noteId or title.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            noteId: {
-              type: "string",
-              description: "Apple Notes ID. If provided, skips title resolution.",
-            },
-            title: { type: "string", description: "Title of the note to append to" },
-            path: {
-              type: "string",
-              description: "Optional folder path to disambiguate duplicate titles",
-            },
-            content: {
-              type: "string",
-              description: "HTML content to append to the end of the note body",
-            },
-          },
-          required: ["content"],
-        },
-      },
-      {
         name: "edit-note",
         description:
-          "Edit an existing Apple Note's title and/or content by noteId or current title",
+          "Edit an existing Apple Note's title and/or content. Identify note by noteId or current title.",
         inputSchema: {
           type: "object",
           properties: {
@@ -297,16 +280,40 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             newTitle: { type: "string", description: "New title (optional)" },
             newContent: {
               type: "string",
-              description: "New content in HTML format (optional, replaces entire content)",
+              description: "New content in markdown format (optional, replaces entire content)",
             },
           },
           required: [],
         },
       },
       {
+        name: "append-to-note",
+        description:
+          "Append content to the end of an existing Apple Note. Identify note by noteId or title.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            noteId: {
+              type: "string",
+              description: "Apple Notes ID. If provided, skips title resolution.",
+            },
+            title: { type: "string", description: "Title of the note to append to" },
+            path: {
+              type: "string",
+              description: "Optional folder path to disambiguate duplicate titles",
+            },
+            content: {
+              type: "string",
+              description: "Content in markdown format to append to the end of the note",
+            },
+          },
+          required: ["content"],
+        },
+      },
+      {
         name: "move-note",
         description:
-          "Move a note to a different folder by noteId or title. Optionally scope the source note by folder path. Use list-folders to get available paths.",
+          "Move a note to a different folder. Identify note by noteId or title. Use list-folders to get available paths.",
         inputSchema: {
           type: "object",
           properties: {
@@ -330,7 +337,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: "delete-note",
         description:
-          "Delete an Apple Note by noteId or title. The note will be moved to Recently Deleted. Optionally scope by folder path.",
+          "Delete an Apple Note (moves to Recently Deleted). Identify note by noteId or title.",
         inputSchema: {
           type: "object",
           properties: {
@@ -856,7 +863,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request, c) => {
   try {
     if (name === "create-note") {
       const { title, content, folder } = CreateNoteSchema.parse(args);
-      const noteId = await createNote(title, content, folder);
+      const noteId = await createNote(title, markdownToHtml(content), folder);
       const note = await refreshIndexedNoteById(notesTable, noteId);
       return createJsonResponse({
         ok: true,
@@ -918,7 +925,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request, c) => {
         });
       }
       const { note: resolvedNote } = await resolveNoteId(notesTable, noteId, title, path);
-      await editNote(resolvedNote.id, newTitle, newContent);
+      await editNote(resolvedNote.id, newTitle, newContent ? markdownToHtml(newContent) : undefined);
       const note = await refreshIndexedNoteById(notesTable, resolvedNote.id);
       return createJsonResponse({
         ok: true,
@@ -928,7 +935,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request, c) => {
     } else if (name === "append-to-note") {
       const { noteId, title, path, content } = AppendToNoteSchema.parse(args);
       const { note: resolvedNote } = await resolveNoteId(notesTable, noteId, title, path);
-      await appendToNote(resolvedNote.id, content);
+      await appendToNote(resolvedNote.id, markdownToHtml(content));
       const note = await refreshIndexedNoteById(notesTable, resolvedNote.id);
       return createJsonResponse({
         ok: true,
