@@ -1,3 +1,10 @@
+
+<div align="center">
+  <h3>
+  <a href="#features">Features</a> · <a href="#security--transparency">Security</a> · <a href="#installation--setup">Installation</a> · <a href="#available-tools">Tools</a> · <a href="#verify-before-you-trust">Verification</a> · <a href="#response-shape">Response Shape</a>
+  </h3>
+</div>
+
 # MCP Apple Notes
 
 ![MCP Apple Notes](./images/logo.png)
@@ -5,10 +12,6 @@
 A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that enables semantic search and RAG (Retrieval Augmented Generation) over your Apple Notes. Works with any MCP-compatible client — Claude Desktop, Cursor, Windsurf, Cline, and others.
 
 ![MCP Apple Notes Demo](./images/demo.png)
-
-<div align="center">
-  <a href="#features">Features</a> · <a href="#security--transparency">Security</a> · <a href="#installation--setup">Installation</a> · <a href="#available-tools">Tools</a> · <a href="#verify-before-you-trust">Verification</a> · <a href="#response-shape">Response Shape</a>
-</div>
 
 ## Features
 
