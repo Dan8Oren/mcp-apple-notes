@@ -5,6 +5,7 @@
   "type": "module",
   "main": "index.ts",
   "description": "MCP server for semantic search and RAG over Apple Notes",
+  "mcpName": "io.github.Dan8Oren/mcp-apple-notes",
   "keywords": [
     "mcp",
     "apple-notes",

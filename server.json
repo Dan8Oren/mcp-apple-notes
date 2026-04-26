@@ -1,0 +1,20 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.Dan8Oren/mcp-apple-notes",
+  "description": "MCP server for semantic search and RAG over Apple Notes",
+  "repository": {
+    "url": "https://github.com/Dan8Oren/mcp-apple-notes",
+    "source": "github"
+  },
+  "version": "1.0.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@dan8oren/mcp-apple-notes",
+      "version": "1.0.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}
