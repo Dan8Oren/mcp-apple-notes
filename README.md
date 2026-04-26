@@ -1,4 +1,3 @@
-
 <div align="center">
   <h3>
   <a href="#features">Features</a> · <a href="#security--transparency">Security</a> · <a href="#installation--setup">Installation</a> · <a href="#available-tools">Tools</a> · <a href="#verify-before-you-trust">Verification</a> · <a href="#response-shape">Response Shape</a>
@@ -83,7 +82,9 @@ Then add the server to your MCP client config. Replace `/path/to/mcp-apple-notes
   }
 }
 ```
+
 ---
+
 ### Method 2: Quick start via npx
 
 If you prefer a **zero-setup** approach and trust the published npm package, you can simply add this directly to your MCP config:
