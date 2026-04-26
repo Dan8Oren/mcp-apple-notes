@@ -19,7 +19,7 @@ jobs:
 
       - name: Verify tag is on main
         run: |
-          git branch --contains "$GITHUB_SHA" | grep -q 'main' || {
+          git branch -a --contains "$GITHUB_SHA" | grep -qE '(^|\s)main$|origin/main' || {
             echo "::error::Tag must point to a commit on main. Aborting."
             exit 1
           }
