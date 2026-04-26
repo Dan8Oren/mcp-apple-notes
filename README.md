@@ -36,11 +36,31 @@ By cloning the repository locally, you can inspect the source code and know exac
 
 **Prerequisites:** [Node.js](https://nodejs.org) (v18+) or [Bun](https://bun.sh/docs/installation)
 
+
+<details>
+<summary><strong>Using Bun?</strong></summary>
+  
+```bash
+git clone https://github.com/Dan8Oren/mcp-apple-notes && cd mcp-apple-notes && bun install
+```
+
+```json
+{
+  "mcpServers": {
+    "apple-notes": {
+      "command": "bun",
+      "args": ["run", "/path/to/mcp-apple-notes/index.ts"]
+    }
+  }
+}
+```
+</details>
+
+### Using NPM:
+
 ```bash
 git clone https://github.com/Dan8Oren/mcp-apple-notes && cd mcp-apple-notes && npm install
 ```
-
-> Using Bun? Replace `npm install` with `bun install` above.
 
 Then add the server to your MCP client config. Replace `/path/to/mcp-apple-notes` with where you cloned the repo:
 
