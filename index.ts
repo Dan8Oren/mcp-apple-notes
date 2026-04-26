@@ -67,8 +67,9 @@ const GetNoteSchema = z
   })
   .refine((d) => d.noteId || d.title, { message: "Either noteId or title must be provided" });
 
-const PathSchema = z.object({
-  path: z.string(),
+const ListNotesSchema = z.object({
+  path: z.string().optional(),
+  includeContent: z.boolean().optional(),
 });
 
 const EditNoteSchema = z
@@ -107,21 +108,6 @@ const AppendToNoteSchema = z
   })
   .refine((d) => d.noteId || d.title, { message: "Either noteId or title must be provided" });
 
-const FindNoteByTitleSchema = z.object({
-  title: z.string(),
-  path: z.string().optional(),
-  limit: z.number().optional(),
-});
-
-const UpsertNoteSchema = z
-  .object({
-    noteId: z.string().optional(),
-    title: z.string().optional(),
-    content: z.string(),
-    folder: z.string().optional(),
-  })
-  .refine((d) => d.noteId || d.title, { message: "Either noteId or title must be provided" });
-
 class NoteNotFoundError extends Error {
   constructor(
     identifier: string,
@@ -138,6 +124,7 @@ class NoteNotFoundError extends Error {
 }
 
 class AmbiguousNoteError extends Error {
+  matches: { id: string; title: string; path: string }[];
   constructor(
     title: string,
     matches: { id: string; title: string; path: string }[],
@@ -148,6 +135,7 @@ class AmbiguousNoteError extends Error {
         `Multiple notes match "${title}". Narrow with path. Matches: ${describeMatches(matches.slice(0, 5))}`
     );
     this.name = "AmbiguousNoteError";
+    this.matches = matches;
   }
 }
 
@@ -175,10 +163,21 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       {
         name: "list-notes",
-        description: "List indexed Apple Notes with title, path, and timestamps",
+        description:
+          "List indexed Apple Notes with title, path, and timestamps. Optionally filter by folder path and include note content.",
         inputSchema: {
           type: "object",
-          properties: {},
+          properties: {
+            path: {
+              type: "string",
+              description:
+                "Optional folder path to filter notes (e.g. iCloud/Work/Projects). Use list-folders to get available paths.",
+            },
+            includeContent: {
+              type: "boolean",
+              description: "If true, include note content in the response (default: false)",
+            },
+          },
           required: [],
         },
       },
@@ -195,7 +194,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: "get-note",
         description:
-          "Get a note full content and details by noteId or title. Optionally scope by folder path.",
+          "Get a note's full content and details by noteId or title. Optionally scope by folder path. If the title is ambiguous, returns a list of matching candidates — retry with noteId or path to disambiguate.",
         inputSchema: {
           type: "object",
           properties: {
@@ -222,18 +221,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: "list-notes-by-path",
-        description:
-          "Get all notes in a specific Apple Notes folder by its full path (returns titles and metadata, no content). Use list-folders to get available paths.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            path: { type: "string", description: "Full folder path (e.g. iCloud/Work/Projects)" },
-          },
-          required: ["path"],
-        },
-      },
-      {
         name: "search-notes",
         description: "Search for notes by title or content. Optionally filter by folder path.",
         inputSchema: {
@@ -247,26 +234,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             limit: { type: "number", description: "Max results to return (default: 50)" },
           },
           required: ["query"],
-        },
-      },
-      {
-        name: "find-note-by-title",
-        description:
-          "Resolve a note by exact or fuzzy title match. Use this when a title may be incomplete or ambiguous.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            title: { type: "string" },
-            path: {
-              type: "string",
-              description: "Optional folder path to narrow matching",
-            },
-            limit: {
-              type: "number",
-              description: "Max matches to return (default: 5)",
-            },
-          },
-          required: ["title"],
         },
       },
       {
@@ -306,28 +273,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             content: {
               type: "string",
               description: "HTML content to append to the end of the note body",
-            },
-          },
-          required: ["content"],
-        },
-      },
-      {
-        name: "upsert-note",
-        description:
-          "Create a note if it does not exist; otherwise append HTML content to the resolved existing note. Identify existing note by noteId or title.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            noteId: {
-              type: "string",
-              description: "Apple Notes ID. If provided, appends to the existing note directly.",
-            },
-            title: { type: "string" },
-            content: { type: "string" },
-            folder: {
-              type: "string",
-              description:
-                "Optional folder path used both for note creation and for resolving an existing note",
             },
           },
           required: ["content"],
@@ -442,7 +387,7 @@ const getNotes = async () => {
   return JSON.parse(result as string) as { id: string; title: string; path: string }[];
 };
 
-export const getIndexedNotes = async (notesTable: lancedb.Table) => {
+export const getIndexedNotes = async (notesTable: lancedb.Table, includeContent = false) => {
   const rows = await notesTable.query().toArray();
   return rows.map((row: any) => ({
     id: row.id,
@@ -450,6 +395,7 @@ export const getIndexedNotes = async (notesTable: lancedb.Table) => {
     path: row.path,
     creation_date: row.creation_date,
     modification_date: row.modification_date,
+    ...(includeContent ? { content: row.content } : {}),
   }));
 };
 
@@ -565,7 +511,7 @@ export const resolveNoteReference = async (
     throw new AmbiguousNoteError(
       requestedTitle,
       fuzzyMatches,
-      `Title "${requestedTitle}" is ambiguous. Use find-note-by-title or provide path. Matches: ${describeMatches(fuzzyMatches.slice(0, 5))}`
+      `Title "${requestedTitle}" is ambiguous. Provide path or noteId to disambiguate. Matches: ${describeMatches(fuzzyMatches.slice(0, 5))}`
     );
   }
 
@@ -595,35 +541,6 @@ const getFolders = async () => {
   `);
 
   return JSON.parse(result as string) as { name: string; path: string; noteCount: number }[];
-};
-
-const getNotesByPath = async (folderPath: string) => {
-  const result = await runJxa(
-    `${jxaGetFolderPath}
-    const app = Application('Notes');
-    app.includeStandardAdditions = true;
-    const targetPath = args[0];
-    const allFolders = Array.from(app.folders());
-    const folder = allFolders.find(f => getFolderPath(f) + '/' + f.name() === targetPath);
-    if (!folder) return JSON.stringify([]);
-    const notes = Array.from(folder.notes());
-    return JSON.stringify(notes.map(note => ({
-      id: note.id(),
-      title: note.name(),
-      path: targetPath,
-      creation_date: note.creationDate().toLocaleString(),
-      modification_date: note.modificationDate().toLocaleString()
-    })));`,
-    [folderPath]
-  );
-
-  return JSON.parse(result as string) as {
-    id: string;
-    title: string;
-    path: string;
-    creation_date: string;
-    modification_date: string;
-  }[];
 };
 
 const getNoteDetailsById = async (id: string) => {
@@ -912,25 +829,35 @@ server.setRequestHandler(CallToolRequestSchema, async (request, c) => {
         message: `Created note "${title}"${folder ? ` in ${folder}` : ""}.`,
       });
     } else if (name === "list-notes") {
-      const notes = await getIndexedNotes(notesTable);
+      const { path, includeContent } = ListNotesSchema.parse(args);
+      let notes = await getIndexedNotes(notesTable, includeContent);
+      if (path) notes = notes.filter((n) => n.path === path);
       return createJsonResponse({ ok: true, data: notes });
     } else if (name == "get-note") {
       const { noteId, title, path } = GetNoteSchema.parse(args);
-      const { note: resolvedNote, matchType } = await resolveNoteId(
-        notesTable,
-        noteId,
-        title,
-        path
-      );
-      const note = assertNoteDetails(await getNoteDetailsById(resolvedNote.id), resolvedNote.id);
-      return createJsonResponse({ ok: true, data: { ...note, resolved_match: matchType } });
+      try {
+        const { note: resolvedNote, matchType } = await resolveNoteId(
+          notesTable,
+          noteId,
+          title,
+          path
+        );
+        const note = assertNoteDetails(await getNoteDetailsById(resolvedNote.id), resolvedNote.id);
+        return createJsonResponse({ ok: true, data: { ...note, resolved_match: matchType } });
+      } catch (error) {
+        if (error instanceof AmbiguousNoteError) {
+          return createJsonResponse({
+            ok: true,
+            ambiguous: true,
+            message: error.message,
+            candidates: error.matches.slice(0, 10),
+          });
+        }
+        throw error;
+      }
     } else if (name === "list-folders") {
       const folders = await getFolders();
       return createJsonResponse({ ok: true, data: folders });
-    } else if (name === "list-notes-by-path") {
-      const { path } = PathSchema.parse(args);
-      const notes = await getNotesByPath(path);
-      return createJsonResponse({ ok: true, data: notes });
     } else if (name === "index-notes") {
       const { time, chunks, report, allNotes } = await indexNotes(notesTable);
       return createJsonResponse({
@@ -946,23 +873,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request, c) => {
       const { query, path, limit } = QueryNotesSchema.parse(args);
       const combinedResults = await searchAndCombineResults(notesTable, query, { path, limit });
       return createJsonResponse({ ok: true, data: combinedResults });
-    } else if (name === "find-note-by-title") {
-      const { title, path, limit } = FindNoteByTitleSchema.parse(args);
-      const { exactMatches, normalizedMatches, fuzzyMatches } = await findMatchingNotes(
-        notesTable,
-        title,
-        path
-      );
-      return createJsonResponse({
-        ok: true,
-        data: {
-          query: title,
-          path: path || null,
-          exact_matches: exactMatches.slice(0, limit || 5),
-          normalized_matches: normalizedMatches.slice(0, limit || 5),
-          fuzzy_matches: fuzzyMatches.slice(0, limit || 5),
-        },
-      });
     } else if (name === "edit-note") {
       const { noteId, title, path, newTitle, newContent } = EditNoteSchema.parse(args);
       if (!newTitle && !newContent) {
@@ -988,34 +898,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request, c) => {
         ok: true,
         data: note,
         message: `Appended content to "${resolvedNote.title}".`,
-      });
-    } else if (name === "upsert-note") {
-      const { noteId, title, content, folder } = UpsertNoteSchema.parse(args);
-      try {
-        const { note: resolvedNote, matchType } = await resolveNoteId(
-          notesTable,
-          noteId,
-          title,
-          folder
-        );
-        await appendToNote(resolvedNote.id, content);
-        const note = await refreshIndexedNoteById(notesTable, resolvedNote.id);
-        return createJsonResponse({
-          ok: true,
-          data: { ...note, resolved_match: matchType },
-          message: `Appended content to existing note "${resolvedNote.title}".`,
-        });
-      } catch (error) {
-        if (!(error instanceof NoteNotFoundError)) {
-          throw error;
-        }
-      }
-      const createdNoteId = await createNote(title!, content, folder);
-      const note = await refreshIndexedNoteById(notesTable, createdNoteId);
-      return createJsonResponse({
-        ok: true,
-        data: note,
-        message: `Created note "${title}"${folder ? ` in ${folder}` : ""}.`,
       });
     } else if (name === "move-note") {
       const { noteId, title, path, targetPath } = MoveNoteSchema.parse(args);
