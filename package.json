@@ -1,10 +1,11 @@
 {
   "name": "@dan8oren/mcp-apple-notes",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "",
   "type": "module",
   "main": "index.ts",
   "description": "MCP server for semantic search and RAG over Apple Notes",
+  "mcpName": "io.github.Dan8Oren/mcp-apple-notes",
   "keywords": [
     "mcp",
     "apple-notes",
@@ -12,6 +13,10 @@
     "rag",
     "jxa"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Dan8Oren/mcp-apple-notes"
+  },
   "license": "ISC",
   "bin": {
     "mcp-apple-notes": "./bin/apple-notes-mcp.js"

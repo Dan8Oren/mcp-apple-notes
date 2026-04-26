@@ -19,14 +19,14 @@ jobs:
 
       - name: Verify tag is on main
         run: |
-          git branch --contains "$GITHUB_SHA" | grep -q 'main' || {
+          git branch -a --contains "$GITHUB_SHA" | grep -qE '(^|\s)main$|origin/main' || {
             echo "::error::Tag must point to a commit on main. Aborting."
             exit 1
           }
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           registry-url: "https://registry.npmjs.org"
 
       - uses: oven-sh/setup-bun@v2
@@ -55,4 +55,4 @@ jobs:
             checksums-sha256.txt
 
       - name: Publish to npm
-        run: npm publish --access public --provenance
+        run: npm publish --access public
