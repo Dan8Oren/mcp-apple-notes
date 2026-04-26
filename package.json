@@ -4,9 +4,22 @@
   "author": "",
   "type": "module",
   "main": "index.ts",
-  "description": "",
-  "keywords": [],
+  "description": "MCP server for semantic search and RAG over Apple Notes",
+  "keywords": [
+    "mcp",
+    "apple-notes",
+    "semantic-search",
+    "rag",
+    "jxa"
+  ],
   "license": "ISC",
+  "bin": {
+    "apple-notes-mcp": "./bin/apple-notes-mcp.js"
+  },
+  "files": [
+    "index.ts",
+    "bin"
+  ],
   "scripts": {
     "build": "bun build index.ts --outdir dist --target node",
     "start": "bun index.ts",
@@ -17,19 +30,19 @@
     ".": "./index.ts"
   },
   "dependencies": {
-    "@huggingface/transformers": "^3.1.2",
-    "@lancedb/lancedb": "^0.14.0",
-    "@langchain/textsplitters": "^0.1.0",
-    "@modelcontextprotocol/sdk": "^1.0.3",
-    "marked": "^18.0.0",
-    "run-jxa": "^3.0.0",
-    "turndown": "^7.2.0",
-    "zod": "^3.24.1"
+    "@huggingface/transformers": "3.1.2",
+    "@lancedb/lancedb": "0.14.0",
+    "@langchain/textsplitters": "0.1.0",
+    "@modelcontextprotocol/sdk": "1.0.3",
+    "marked": "18.0.0",
+    "run-jxa": "3.0.0",
+    "tsx": "4.21.0",
+    "turndown": "7.2.0",
+    "zod": "3.24.1"
   },
   "devDependencies": {
-    "@types/turndown": "^5.0.5",
-    "prettier": "^3.8.1",
-    "tsx": "^4.21.0",
-    "typescript": "^6.0.2"
+    "@types/turndown": "5.0.5",
+    "prettier": "3.8.1",
+    "typescript": "6.0.2"
   }
 }
