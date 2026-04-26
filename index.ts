@@ -543,6 +543,41 @@ const getFolders = async () => {
   return JSON.parse(result as string) as { name: string; path: string; noteCount: number }[];
 };
 
+const getNotesByPath = async (folderPath: string, includeContent = false) => {
+  const result = await runJxa(
+    `${jxaGetFolderPath}
+    const app = Application('Notes');
+    app.includeStandardAdditions = true;
+    const targetPath = args[0];
+    const withContent = args[1] === 'true';
+    const allFolders = Array.from(app.folders());
+    const folder = allFolders.find(f => getFolderPath(f) + '/' + f.name() === targetPath);
+    if (!folder) return JSON.stringify([]);
+    const notes = Array.from(folder.notes());
+    return JSON.stringify(notes.map(note => {
+      const base = {
+        id: note.id(),
+        title: note.name(),
+        path: targetPath,
+        creation_date: note.creationDate().toLocaleString(),
+        modification_date: note.modificationDate().toLocaleString()
+      };
+      if (withContent) base.content = note.body();
+      return base;
+    }));`,
+    [folderPath, String(includeContent)]
+  );
+
+  return JSON.parse(result as string) as {
+    id: string;
+    title: string;
+    path: string;
+    creation_date: string;
+    modification_date: string;
+    content?: string;
+  }[];
+};
+
 const getNoteDetailsById = async (id: string) => {
   const note = await runJxa(
     `${jxaGetFolderPath}
@@ -830,8 +865,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request, c) => {
       });
     } else if (name === "list-notes") {
       const { path, includeContent } = ListNotesSchema.parse(args);
-      let notes = await getIndexedNotes(notesTable, includeContent);
-      if (path) notes = notes.filter((n) => n.path === path);
+      const notes = path
+        ? await getNotesByPath(path, includeContent)
+        : await getIndexedNotes(notesTable, includeContent);
       return createJsonResponse({ ok: true, data: notes });
     } else if (name == "get-note") {
       const { noteId, title, path } = GetNoteSchema.parse(args);
