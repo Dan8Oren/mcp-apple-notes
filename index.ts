@@ -13,6 +13,14 @@ import { pipeline } from "@huggingface/transformers";
 import { marked } from "marked";
 
 const VERBOSE = process.argv.includes("--verbose") || process.env.MCP_APPLE_NOTES_VERBOSE === "1";
+const READ_ONLY = process.env.MCP_APPLE_NOTES_READ_ONLY === "1";
+const MUTATING_TOOLS = new Set([
+  "create-note",
+  "edit-note",
+  "append-to-note",
+  "move-note",
+  "delete-note",
+]);
 
 const verboseRunJxa: typeof runJxa = async (code, args) => {
   if (VERBOSE) {
@@ -171,199 +179,198 @@ const server = new Server(
 );
 
 server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return {
-    tools: [
-      {
-        name: "index-notes",
-        description:
-          "Index all Apple Notes for semantic search. Run this first — takes seconds to minutes depending on note count.",
-        inputSchema: {
-          type: "object",
-          properties: {},
-          required: [],
-        },
+  const allTools = [
+    {
+      name: "index-notes",
+      description:
+        "Index all Apple Notes for semantic search. Run this first — takes seconds to minutes depending on note count.",
+      inputSchema: {
+        type: "object",
+        properties: {},
+        required: [],
       },
-      {
-        name: "list-folders",
-        description: "List all Apple Notes folders with full paths and note counts",
-        inputSchema: {
-          type: "object",
-          properties: {},
-          required: [],
-        },
+    },
+    {
+      name: "list-folders",
+      description: "List all Apple Notes folders with full paths and note counts",
+      inputSchema: {
+        type: "object",
+        properties: {},
+        required: [],
       },
-      {
-        name: "list-notes",
-        description:
-          "List Apple Notes with title, path, and timestamps. Optionally filter by folder path and include note content.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            path: {
-              type: "string",
-              description:
-                "Optional folder path to filter notes (e.g. iCloud/Work/Projects). Use list-folders to get available paths.",
-            },
-            includeContent: {
-              type: "boolean",
-              description: "If true, include note content in the response (default: false)",
-            },
+    },
+    {
+      name: "list-notes",
+      description:
+        "List Apple Notes with title, path, and timestamps. Optionally filter by folder path and include note content.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          path: {
+            type: "string",
+            description:
+              "Optional folder path to filter notes (e.g. iCloud/Work/Projects). Use list-folders to get available paths.",
           },
-          required: [],
-        },
-      },
-      {
-        name: "search-notes",
-        description: "Semantic and full-text search over notes. Optionally filter by folder path.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            query: { type: "string" },
-            path: {
-              type: "string",
-              description: "Optional: filter results to a specific folder path (e.g. iCloud/Work)",
-            },
-            limit: { type: "number", description: "Max results to return (default: 50)" },
+          includeContent: {
+            type: "boolean",
+            description: "If true, include note content in the response (default: false)",
           },
-          required: ["query"],
         },
+        required: [],
       },
-      {
-        name: "get-note",
-        description:
-          "Get a note's full content and details by noteId or title. Optionally scope by folder path. If the title is ambiguous, returns a list of matching candidates — retry with noteId or path to disambiguate.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            noteId: {
-              type: "string",
-              description: "Apple Notes ID. If provided, skips title resolution.",
-            },
-            title: { type: "string" },
-            path: {
-              type: "string",
-              description: "Optional folder path to disambiguate duplicate titles",
-            },
+    },
+    {
+      name: "search-notes",
+      description: "Semantic and full-text search over notes. Optionally filter by folder path.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          query: { type: "string" },
+          path: {
+            type: "string",
+            description: "Optional: filter results to a specific folder path (e.g. iCloud/Work)",
           },
-          required: [],
+          limit: { type: "number", description: "Max results to return (default: 50)" },
         },
+        required: ["query"],
       },
-      {
-        name: "create-note",
-        description:
-          "Create a new Apple Note with a title and markdown content. Optionally place it in a folder path.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            title: { type: "string" },
-            content: {
-              type: "string",
-              description: "Note content in markdown format",
-            },
-            folder: {
-              type: "string",
-              description:
-                "Optional folder path to create the note in (e.g. iCloud/Work/Projects). Use list-folders to get available paths.",
-            },
+    },
+    {
+      name: "get-note",
+      description:
+        "Get a note's full content and details by noteId or title. Optionally scope by folder path. If the title is ambiguous, returns a list of matching candidates — retry with noteId or path to disambiguate.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          noteId: {
+            type: "string",
+            description: "Apple Notes ID. If provided, skips title resolution.",
           },
-          required: ["title", "content"],
-        },
-      },
-      {
-        name: "edit-note",
-        description:
-          "Edit an existing Apple Note's title and/or content. Identify note by noteId or current title.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            noteId: {
-              type: "string",
-              description: "Apple Notes ID. If provided, skips title resolution.",
-            },
-            title: { type: "string", description: "Current title of the note to edit" },
-            path: {
-              type: "string",
-              description: "Optional folder path to disambiguate duplicate titles",
-            },
-            newTitle: { type: "string", description: "New title (optional)" },
-            newContent: {
-              type: "string",
-              description: "New content in markdown format (optional, replaces entire content)",
-            },
+          title: { type: "string" },
+          path: {
+            type: "string",
+            description: "Optional folder path to disambiguate duplicate titles",
           },
-          required: [],
         },
+        required: [],
       },
-      {
-        name: "append-to-note",
-        description:
-          "Append content to the end of an existing Apple Note. Identify note by noteId or title.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            noteId: {
-              type: "string",
-              description: "Apple Notes ID. If provided, skips title resolution.",
-            },
-            title: { type: "string", description: "Title of the note to append to" },
-            path: {
-              type: "string",
-              description: "Optional folder path to disambiguate duplicate titles",
-            },
-            content: {
-              type: "string",
-              description: "Content in markdown format to append to the end of the note",
-            },
+    },
+    {
+      name: "create-note",
+      description:
+        "Create a new Apple Note with a title and markdown content. Optionally place it in a folder path.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          content: {
+            type: "string",
+            description: "Note content in markdown format",
           },
-          required: ["content"],
-        },
-      },
-      {
-        name: "move-note",
-        description:
-          "Move a note to a different folder. Identify note by noteId or title. Use list-folders to get available paths.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            noteId: {
-              type: "string",
-              description: "Apple Notes ID. If provided, skips title resolution.",
-            },
-            title: { type: "string", description: "Title of the note to move" },
-            path: {
-              type: "string",
-              description: "Optional current folder path to disambiguate duplicate titles",
-            },
-            targetPath: {
-              type: "string",
-              description: "Full folder path to move the note to (e.g. iCloud/Work/Projects)",
-            },
+          folder: {
+            type: "string",
+            description:
+              "Optional folder path to create the note in (e.g. iCloud/Work/Projects). Use list-folders to get available paths.",
           },
-          required: ["targetPath"],
         },
+        required: ["title", "content"],
       },
-      {
-        name: "delete-note",
-        description:
-          "Delete an Apple Note (moves to Recently Deleted). Identify note by noteId or title.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            noteId: {
-              type: "string",
-              description: "Apple Notes ID. If provided, skips title resolution.",
-            },
-            title: { type: "string", description: "Title of the note to delete" },
-            path: {
-              type: "string",
-              description: "Optional folder path to disambiguate duplicate titles",
-            },
+    },
+    {
+      name: "edit-note",
+      description:
+        "Edit an existing Apple Note's title and/or content. Identify note by noteId or current title.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          noteId: {
+            type: "string",
+            description: "Apple Notes ID. If provided, skips title resolution.",
           },
-          required: [],
+          title: { type: "string", description: "Current title of the note to edit" },
+          path: {
+            type: "string",
+            description: "Optional folder path to disambiguate duplicate titles",
+          },
+          newTitle: { type: "string", description: "New title (optional)" },
+          newContent: {
+            type: "string",
+            description: "New content in markdown format (optional, replaces entire content)",
+          },
         },
+        required: [],
       },
-    ],
-  };
+    },
+    {
+      name: "append-to-note",
+      description:
+        "Append content to the end of an existing Apple Note. Identify note by noteId or title.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          noteId: {
+            type: "string",
+            description: "Apple Notes ID. If provided, skips title resolution.",
+          },
+          title: { type: "string", description: "Title of the note to append to" },
+          path: {
+            type: "string",
+            description: "Optional folder path to disambiguate duplicate titles",
+          },
+          content: {
+            type: "string",
+            description: "Content in markdown format to append to the end of the note",
+          },
+        },
+        required: ["content"],
+      },
+    },
+    {
+      name: "move-note",
+      description:
+        "Move a note to a different folder. Identify note by noteId or title. Use list-folders to get available paths.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          noteId: {
+            type: "string",
+            description: "Apple Notes ID. If provided, skips title resolution.",
+          },
+          title: { type: "string", description: "Title of the note to move" },
+          path: {
+            type: "string",
+            description: "Optional current folder path to disambiguate duplicate titles",
+          },
+          targetPath: {
+            type: "string",
+            description: "Full folder path to move the note to (e.g. iCloud/Work/Projects)",
+          },
+        },
+        required: ["targetPath"],
+      },
+    },
+    {
+      name: "delete-note",
+      description:
+        "Delete an Apple Note (moves to Recently Deleted). Identify note by noteId or title.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          noteId: {
+            type: "string",
+            description: "Apple Notes ID. If provided, skips title resolution.",
+          },
+          title: { type: "string", description: "Title of the note to delete" },
+          path: {
+            type: "string",
+            description: "Optional folder path to disambiguate duplicate titles",
+          },
+        },
+        required: [],
+      },
+    },
+  ];
+  return { tools: READ_ONLY ? allTools.filter((t) => !MUTATING_TOOLS.has(t.name)) : allTools };
 });
 
 const jxaGetFolderPath = `
@@ -868,6 +875,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request, c) => {
   const { notesTable } = await createNotesTable();
   const { name, arguments: args } = request.params;
 
+  if (READ_ONLY && MUTATING_TOOLS.has(name)) {
+    return createJsonResponse({
+      ok: false,
+      error: {
+        type: "ReadOnlyError",
+        message: "This server is running in read-only mode. Mutating operations are disabled.",
+      },
+    });
+  }
+
   try {
     if (name === "create-note") {
       const { title, content, folder } = CreateNoteSchema.parse(args);
@@ -987,6 +1004,7 @@ const transport = new StdioServerTransport();
 await server.connect(transport);
 console.error("Local Machine MCP Server running on stdio");
 if (VERBOSE) console.error("Verbose mode enabled — JXA calls will be logged to stderr");
+if (READ_ONLY) console.error("Read-only mode enabled — mutating tools are disabled");
 
 /**
  * Search for notes by title or content using both vector and FTS search.
