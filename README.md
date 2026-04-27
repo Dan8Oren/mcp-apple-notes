@@ -20,6 +20,7 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that e
 - 📊 Vector storage using [LanceDB](https://lancedb.github.io/lancedb/)
 - 🤖 Works with any MCP-compatible client (Claude, Cursor, Windsurf, Cline, etc.)
 - 🍎 Native Apple Notes integration via JXA
+- 🔒 Optional [read-only mode](#read-only-mode) for safe exploration
 - 🏃‍♂️ Fully local execution — no API keys needed
 
 ## Security & Transparency
@@ -104,6 +105,8 @@ If you prefer a **zero-setup** approach and trust the published npm package, you
 
 After setup, restart your client and ask your AI assistant to **"index my notes"** to get started.
 
+> **Tip:** Want to try it without risk? Enable [read-only mode](#read-only-mode) to block all write operations while you explore.
+
 ### Per-client instructions
 
 <details>
@@ -165,6 +168,24 @@ Add the JSON config to `~/.windsurf/mcp.json`.
 ## Verify Before You Trust
 
 Every Apple Notes operation is a [JXA](https://developer.apple.com/library/archive/releasenotes/InterapplicationCommunication/RN-JavaScriptForAutomation/) call you can inspect in [`index.ts`](./index.ts). No network requests, no background syncing — just local scripting bridge calls.
+
+### Read-only mode
+
+Want a safety net? Enable read-only mode to block all write operations — only search, list, and read tools will be available:
+
+```json
+{
+  "mcpServers": {
+    "apple-notes": {
+      "command": "npx",
+      "args": ["-y", "@dan8oren/mcp-apple-notes"],
+      "env": { "MCP_APPLE_NOTES_READ_ONLY": "1" }
+    }
+  }
+}
+```
+
+When enabled, only these tools are available: `index-notes`, `list-folders`, `list-notes`, `search-notes`, `get-note`.
 
 ### Verbose mode
 
