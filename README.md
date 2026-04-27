@@ -8,6 +8,8 @@
 
 ![MCP Apple Notes](./images/logo.png)
 
+[![mcp-apple-notes MCP server](https://glama.ai/mcp/servers/Dan8Oren/mcp-apple-notes/badges/score.svg)](https://glama.ai/mcp/servers/Dan8Oren/mcp-apple-notes)
+
 A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that enables semantic search and RAG (Retrieval Augmented Generation) over your Apple Notes. Works with any MCP-compatible client — Claude Desktop, Cursor, Windsurf, Cline, and others.
 
 ![MCP Apple Notes Demo](./images/demo.png)
