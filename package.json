@@ -1,6 +1,6 @@
 {
   "name": "@dan8oren/mcp-apple-notes",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": "",
   "type": "module",
   "main": "index.ts",
