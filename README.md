@@ -86,6 +86,9 @@ Then add the server to your MCP client config. Replace `/path/to/mcp-apple-notes
 }
 ```
 
+> **Tip:** Want to try it without risk? Enable [read-only mode](#read-only-mode) to block all write operations while you explore. \
+> `"env": { "MCP_APPLE_NOTES_READ_ONLY": "1" }`
+
 ---
 
 ### Method 2: Quick start via npx
@@ -106,8 +109,6 @@ If you prefer a **zero-setup** approach and trust the published npm package, you
 ---
 
 After setup, restart your client and ask your AI assistant to **"index my notes"** to get started.
-
-> **Tip:** Want to try it without risk? Enable [read-only mode](#read-only-mode) to block all write operations while you explore.
 
 ### Per-client instructions
 
