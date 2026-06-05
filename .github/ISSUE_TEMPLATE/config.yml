@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or setup help
+    url: https://github.com/Dan8Oren/mcp-apple-notes/discussions/categories/q-a
+    about: Stuck on installation, configuration, or how to use a tool? Ask in Q&A.
+  - name: Feature idea (open-ended)
+    url: https://github.com/Dan8Oren/mcp-apple-notes/discussions/categories/ideas
+    about: Have a half-formed idea? Discuss it in Ideas before opening an issue.
+  - name: Show what you built
+    url: https://github.com/Dan8Oren/mcp-apple-notes/discussions/categories/show-and-tell
+    about: Built something cool with mcp-apple-notes? Share it!
