@@ -1,0 +1,38 @@
+name: Feature request
+description: Propose a new tool, parameter, or behaviour
+title: "[feat]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea! Concrete use cases make features much easier to scope.
+        If you'd rather brainstorm first, [Ideas Discussions](https://github.com/Dan8Oren/mcp-apple-notes/discussions/categories/ideas) is a great place to start.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Describe the use case. What are you trying to do today, and what's getting in the way?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What would the ideal behaviour look like? New tool? New parameter? Different response shape?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Workarounds you've tried, related tools, or other ways to solve the problem.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Anything else — screenshots, links to similar features in other MCP servers, etc.

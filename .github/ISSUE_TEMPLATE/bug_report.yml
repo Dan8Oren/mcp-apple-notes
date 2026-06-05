@@ -1,0 +1,75 @@
+name: Bug report
+description: Something isn't working as expected
+title: "[bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug! The more specific you are, the faster this gets fixed.
+        If you have a question instead of a bug, please use [Q&A Discussions](https://github.com/Dan8Oren/mcp-apple-notes/discussions/categories/q-a).
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what did you actually see?
+      placeholder: |
+        Steps to reproduce:
+        1. ...
+        2. ...
+        Expected: ...
+        Actual: ...
+    validations:
+      required: true
+
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      placeholder: e.g. 15.4 (Sequoia)
+    validations:
+      required: true
+
+  - type: input
+    id: runtime
+    attributes:
+      label: Node / Bun version
+      description: Output of `node -v` or `bun -v`
+      placeholder: e.g. node v20.11.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: client
+    attributes:
+      label: MCP client
+      options:
+        - Claude Desktop
+        - Cursor
+        - Windsurf
+        - Cline
+        - Other (specify below)
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: mcp-apple-notes version / commit
+      description: From `package.json` if installed, or the commit SHA if running from source
+      placeholder: e.g. 1.0.2 or 8f1dc85
+
+  - type: textarea
+    id: config
+    attributes:
+      label: MCP server config
+      description: The relevant snippet from your client's MCP config. Redact any secrets.
+      render: json
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / error output
+      description: Run with `--verbose` (or `MCP_APPLE_NOTES_VERBOSE=1`) if you can. Paste relevant output.
+      render: shell

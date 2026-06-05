@@ -246,6 +246,18 @@ Tool responses are JSON objects in a consistent envelope:
 
 Most note-oriented responses now include the stable Apple Notes `id` so clients can track notes safely across renames and moves.
 
+## Community & Support
+
+Bug reports, ideas, questions, and showcases all have a home — please use the channel that fits:
+
+- 🐛 **Found a bug?** → [Open an issue](https://github.com/Dan8Oren/mcp-apple-notes/issues/new/choose)
+- 💡 **Have a feature idea?** → [Start a thread in Ideas](https://github.com/Dan8Oren/mcp-apple-notes/discussions/categories/ideas)
+- ❓ **Need help with setup or integration?** → [Ask in Q&A](https://github.com/Dan8Oren/mcp-apple-notes/discussions/categories/q-a)
+- 🛠 **Built something cool with it?** → [Share in Show and tell](https://github.com/Dan8Oren/mcp-apple-notes/discussions/categories/show-and-tell)
+- 📣 **Watch for updates** → [Announcements](https://github.com/Dan8Oren/mcp-apple-notes/discussions/categories/announcements)
+
+PRs are welcome. For non-trivial changes, please open an issue or discussion first so we can align on direction before you invest time.
+
 ## Acknowledgments
 
 Originally based on [RafalWilinski/mcp-apple-notes](https://github.com/RafalWilinski/mcp-apple-notes).
