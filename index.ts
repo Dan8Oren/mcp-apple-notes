@@ -87,10 +87,16 @@ const GetNoteSchema = z
   })
   .refine((d) => d.noteId || d.title, { message: "Either noteId or title must be provided" });
 
-const ListNotesSchema = z.object({
-  path: z.string().optional(),
-  includeContent: z.boolean().optional(),
-});
+const ListNotesSchema = z
+  .object({
+    path: z.string().optional(),
+    includeContent: z.boolean().optional(),
+    contentPreviewChars: z.number().int().positive().optional(),
+  })
+  .refine((d) => !d.contentPreviewChars || !!d.path, {
+    message: "contentPreviewChars requires path",
+    path: ["contentPreviewChars"],
+  });
 
 const EditNoteSchema = z
   .object({
@@ -213,7 +219,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           },
           includeContent: {
             type: "boolean",
-            description: "If true, include note content in the response (default: false)",
+            description: "If true, include full note content in the response (default: false)",
+          },
+          contentPreviewChars: {
+            type: "number",
+            description:
+              "If set, include an HTML-stripped content preview truncated to this many characters per note (one fast folder-scoped call). Preferred over fetching full content for many notes, which can exceed the response token cap. Requires path.",
           },
         },
         required: [],
@@ -565,13 +576,14 @@ const getFolders = async () => {
   return JSON.parse(result as string) as { name: string; path: string; noteCount: number }[];
 };
 
-const getNotesByPath = async (folderPath: string, includeContent = false) => {
+const getNotesByPath = async (folderPath: string, includeContent = false, previewChars = 0) => {
   const result = await verboseRunJxa(
     `${jxaGetFolderPath}
     const app = Application('Notes');
     app.includeStandardAdditions = true;
     const targetPath = args[0];
     const withContent = args[1] === 'true';
+    const previewChars = parseInt(args[2], 10) || 0;
     const allFolders = Array.from(app.folders());
     const folder = allFolders.find(f => getFolderPath(f) + '/' + f.name() === targetPath);
     if (!folder) return JSON.stringify([]);
@@ -584,10 +596,25 @@ const getNotesByPath = async (folderPath: string, includeContent = false) => {
         creation_date: note.creationDate().toLocaleString(),
         modification_date: note.modificationDate().toLocaleString()
       };
-      if (withContent) base.content = note.body();
+      if (previewChars > 0) {
+        const text = String(note.body())
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'")
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/\\s+/g, ' ')
+          .trim();
+        base.content = text.slice(0, previewChars);
+        if (text.length > previewChars) base.content_truncated = true;
+      } else if (withContent) {
+        base.content = note.body();
+      }
       return base;
     }));`,
-    [folderPath, String(includeContent)]
+    [folderPath, String(includeContent), String(previewChars)]
   );
 
   return JSON.parse(result as string) as {
@@ -896,9 +923,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request, c) => {
         message: `Created note "${title}"${folder ? ` in ${folder}` : ""}.`,
       });
     } else if (name === "list-notes") {
-      const { path, includeContent } = ListNotesSchema.parse(args);
+      const { path, includeContent, contentPreviewChars } = ListNotesSchema.parse(args);
       const notes = path
-        ? await getNotesByPath(path, includeContent)
+        ? await getNotesByPath(path, includeContent, contentPreviewChars ?? 0)
         : await getIndexedNotes(notesTable, includeContent);
       return createJsonResponse({ ok: true, data: notes });
     } else if (name == "get-note") {
