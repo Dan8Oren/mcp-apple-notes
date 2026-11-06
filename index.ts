@@ -412,7 +412,7 @@ const getNotes = async () => {
     const notes = Array.from(app.notes());
     return JSON.stringify(notes.map(note => ({
       id: note.id(),
-      title: note.properties().name,
+      title: note.name(),
       path: getNoteFolderPath(note)
     })));
   `);
