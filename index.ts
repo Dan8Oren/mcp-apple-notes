@@ -634,10 +634,9 @@ const getNoteDetailsById = async (id: string) => {
     const id = args[0];
 
     try {
-        const note = Array.from(app.notes()).find(note => {
-            return note.id() === id;
-        });
-        if (!note) return "{}";
+        // Direct lookup; scanning app.notes() costs one AppleEvent per note.
+        // A missing id throws "Can't get object." and falls through to "{}".
+        const note = app.notes.byId(id);
 
         const noteInfo = {
             id: note.id(),
@@ -707,20 +706,39 @@ const noteToIndexRow = (note: {
   }
 };
 
+// Notes.app serves AppleEvents on one thread, so one osascript per note all at
+// once just queues up behind it. A few in flight keeps it busy without flooding it.
+const INDEX_CONCURRENCY = 4;
+
+export const mapWithConcurrency = async <T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> => {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const i = next++;
+      results[i] = await fn(items[i]);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
+};
+
 export const indexNotes = async (notesTable: any) => {
   const start = performance.now();
   let report = "";
   const allNotes = (await getNotes()) || [];
-  const notesDetails = await Promise.all(
-    allNotes.map((note) => {
-      try {
-        return getNoteDetailsById(note.id);
-      } catch (error) {
-        report += `Error getting note details for ${note.title}: ${(error as Error).message}\n`;
-        return {} as any;
-      }
-    })
-  );
+  const notesDetails = await mapWithConcurrency(allNotes, INDEX_CONCURRENCY, async (note) => {
+    try {
+      return await getNoteDetailsById(note.id);
+    } catch (error) {
+      report += `Error getting note details for ${note.title}: ${(error as Error).message}\n`;
+      return {} as any;
+    }
+  });
 
   const chunks = notesDetails
     .filter((n) => n.title)
