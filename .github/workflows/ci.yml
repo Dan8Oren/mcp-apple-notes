@@ -19,6 +19,10 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+        env:
+          # onnxruntime-node's postinstall fetches optional Linux CUDA binaries
+          # from a GitHub release that now 404s; the server never uses CUDA.
+          ONNXRUNTIME_NODE_INSTALL_CUDA: skip
 
       - name: Type check
         run: npx tsc
